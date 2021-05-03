@@ -1,0 +1,93 @@
+import os
+import sys
+import json
+import numpy as np
+import pandas as pd
+
+from snakemake.utils import min_version
+
+# minium required snakemake version
+min_version("5.31.0")
+#pd.set_option("display.max_columns", None)
+
+#configfile: "config.yaml"
+
+
+work_dir = os.path.abspath(workflow.snakefile)
+script_dir = os.path.join(os.path.dirname(work_dir), "scripts")
+sys.path.append( script_dir )
+
+################################################################################
+###                                                                          ###
+###                      define the parameter                                ###
+###                                                                          ###
+################################################################################
+reference=config['genome']
+specie_name = config.get('specie_name', "maker")
+protein = config.get("protein","")
+MPI = config.get('parallel', False)
+
+## assemble the transcript
+transcript_assemble = config.get('transcript_assemble', False)
+gtf = config.get('gtf', None)
+SKIP_QC = False
+if transcript_assemble:
+    if config['sample'] is None or not os.path.isfile(config['sample']):
+        print("RNA-seq sample file is not existed", file=sys.stderr)
+        sys.exit(1)
+    sampleTable = pd.read_csv(config['sample'], index_col=0,sep=",")
+    tissues = np.unique( sampleTable['tissue'])
+    all_ngs_gff3 = expand("rna-seq/ngs/04-final/{tissue}.gff3", tissue = tissues)
+    print( "RNA-seq:\n" +  "\n".join(all_ngs_gff3))
+
+
+## training the model
+training_model = config.get("training_model", False)
+
+## existed gene model
+snaphmm = config.get('snaphmm', False)
+augustus_species = config.get('augustus_species', False)
+
+snap_rounds = '0'
+augustus_rounds = '0'
+max_round = 0 # the max round of gene model training
+if training_model:
+    # snap training round
+    if 'training_snap_round' in config.keys() and config['training_snap_round'] is not None:
+        snap_rounds = str(config['training_snap_round'])
+    # augustus training round
+    if 'training_augustus_round' in config.keys() and config['training_augustus_round'] is not None:
+        augustus_rounds = str(config['training_augustus_round'])
+
+    max_round = max( int(snap_rounds[-1]), int(augustus_rounds[-1]) )
+
+if training_model and max_round == 0:
+    log_exception("In training model, training_augustus_round and training_snap_round can not be empty")
+
+if not training_model and not snaphmm and not augustus_species:
+    log_exception("In direct annotation model, neither snaphmm nor augustus_species should be set ")  
+
+localrules: all
+rule all:
+    input: "maker.gff"
+
+# sub rules
+rule transcript_assembly:
+    input: all_ngs_gff3
+    output: touch("status/transcript_assemble.done")
+
+rule gene_model_training:
+    input: "status/model_training_round{round}.done".format(round=max_round)
+    output: touch("status/model_training.done")
+
+
+# add the rules
+include: "rules/ngs_transcript_assembly.smk"
+include: "rules/model_training.smk"
+include: "rules/maker.smk"
+
+onsuccess:
+    print("WGAP finished")
+
+onerror:
+    print("WGAP failed: check the log file for debugging")

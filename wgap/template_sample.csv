@@ -1,0 +1,6 @@
+sample,tissue,technology,fq1,fq2
+s1,root,ngs,/path/to/s1.fq.gz,/path/to/s1.fq.gz
+s2,root,ngs,/path/to/s2.fq.gz,/path/to/s2.fq.gz
+s3,shoot,ngs-rf,/path/to/s3.fq.gz,/path/to/s3.fq.gz
+s4,leaf,pb,/path/to/s4.fq.gz,
+s5,mixed,ont,/path/to/s5.fq.gz,
