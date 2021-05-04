@@ -36,9 +36,12 @@ def download_uniprot(specie, dataset):
     file_path = file_name
     base_url = "https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/"
     url = base_url + file_name
-    
-    urllib.request.urlretrieve(url, filename=file_path)
 
+    try:
+        urllib.request.urlretrieve(url, filename=file_path)
+    except:
+        print("You can also download protein with `wget {}`, and then rerun".format(url))
+    
     return file_path
 
 

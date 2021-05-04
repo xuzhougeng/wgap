@@ -170,8 +170,11 @@ def init_workdir(workdir):
 def download_protein(fasta, specie, dataset):
 
     logging.info("Downloading: %s" % dataset + "_"+ specie )
-    dat_file = utils.download_uniprot(specie, dataset)
-    utils.convet_dat_to_fasta(dat_file, fasta)
+    dat_file = "uniprot_{dataset}_{specie}.dat.gz".format(dataset=dataset, specie=specie)
+    if not os.path.exists(dat_file):
+        dat_file = utils.download_uniprot(specie, dataset)
+    if not os.path.exists(fasta):
+        utils.convet_dat_to_fasta(dat_file, fasta)
     logging.info("Finished:" % fasta )
 
 
