@@ -9,7 +9,6 @@ from shutil import copyfile
 from snakemake import load_configfile
 
 from wgap.scripts import utils
-from wgap.conf import check_augustus_species
 
 from wgap import __version__
 

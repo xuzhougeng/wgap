@@ -24,7 +24,7 @@ def get_maker_config(wildcards):
 
     maker_ctl  = wildcards.ctl
     maker_type = wildcards.type
-    json_file = "maker_{}_{}_parameter.json".format(maker_ctl, maker_type)
+    json_file = "ctl/maker_{}_{}_parameter.json".format(maker_ctl, maker_type)
     settings = dict()
 
     # maker round
@@ -71,8 +71,9 @@ def get_maker_config(wildcards):
                 settings['protein2genome'] = '1'
         
         if maker_type.find("round") >= 0: #  train round > 1
-            settings['snaphmm'] = "gene_model/snap_round{}.hmm".format(round-1)
-            if augustus_rounds != '0':
+            if str(round-1) in snap_rounds :
+                settings['snaphmm'] = "gene_model/snap_round{}.hmm".format(round-1)
+            if str(round-1) in augustus_rounds :
                     settings["augustus_species"] = specie_name
 
         settings =  add_param_to_setting(settings, params)
@@ -134,7 +135,7 @@ rule update_maker_ctl:
     params:
         script_dir = script_dir,
         opts_settings = get_maker_config
-    output: "maker_{ctl}_{type}.ctl"
+    output: "ctl/maker_{ctl}_{type}.ctl"
     shell:"""
     python {params.script_dir}/maker_ctl_updator.py {input.ctl} {output} {params.opts_settings}
     """
@@ -143,9 +144,9 @@ rule update_maker_ctl:
 if MPI:
     rule run_maker_annotation:
         input: 
-            opts = "maker_opts_annotation.ctl",
-            bopts = "maker_bopts_annotation.ctl",
-            exe = "maker_exe_annotation.ctl"
+            opts = "ctl/maker_opts_annotation.ctl",
+            bopts = "ctl/maker_bopts_annotation.ctl",
+            exe = "ctl/maker_exe_annotation.ctl"
         output: touch("status/maker_annotation.done")
         params:
             dsname = specie_name
@@ -157,9 +158,9 @@ if MPI:
 else: 
     rule run_maker_annotation:
         input: 
-            opts = "maker_opts_annotation.ctl",
-            bopts = "maker_bopts_annotation.ctl",
-            exe = "maker_exe_annotation.ctl"
+            opts = "ctl/maker_opts_annotation.ctl",
+            bopts = "ctl/maker_bopts_annotation.ctl",
+            exe = "ctl/maker_exe_annotation.ctl"
         output: touch("status/maker_annotation.done")
         params:
             dsname = specie_name,
@@ -187,9 +188,9 @@ rule maker_loop_output:
 if MPI:
     rule run_maker_loop:
         input: 
-            opts = "maker_opts_round{round}.ctl",
-            bopts = "maker_bopts_round{round}.ctl",
-            exe = "maker_exe_round{round}.ctl"
+            opts = "ctl/maker_opts_round{round}.ctl",
+            bopts = "ctl/maker_bopts_round{round}.ctl",
+            exe = "ctl/maker_exe_round{round}.ctl"
         output: touch("status/maker_round{round}.done")
         params:
             dsname = specie_name,
@@ -201,9 +202,9 @@ if MPI:
 else:
     rule run_maker_loop:
         input: 
-            opts = "maker_opts_round{round}.ctl",
-            bopts = "maker_bopts_round{round}.ctl",
-            exe = "maker_exe_round{round}.ctl"
+            opts = "ctl/maker_opts_round{round}.ctl",
+            bopts = "ctl/maker_bopts_round{round}.ctl",
+            exe = "ctl/maker_exe_round{round}.ctl"
         output: touch("status/maker_round{round}.done")
         params:
             dsname = specie_name,
@@ -217,9 +218,9 @@ else:
 if MPI:
     rule run_maker_base:
         input: 
-            opts = "maker_opts_base.ctl",
-            bopts = "maker_bopts_base.ctl",
-            exe = "maker_exe_base.ctl"
+            opts = "ctl/maker_opts_base.ctl",
+            bopts = "ctl/maker_bopts_base.ctl",
+            exe = "ctl/maker_exe_base.ctl"
         output: touch("status/maker_base.done")
         params:
             dsname = specie_name,
@@ -231,9 +232,9 @@ if MPI:
 else:
     rule run_maker_base:
         input: 
-            opts = "maker_opts_base.ctl",
-            bopts = "maker_bopts_base.ctl",
-            exe = "maker_exe_base.ctl"
+            opts = "ctl/maker_opts_base.ctl",
+            bopts = "ctl/maker_bopts_base.ctl",
+            exe = "ctl/maker_exe_base.ctl"
         output: touch("status/maker_base.done")
         params:
             dsname = specie_name,
