@@ -174,9 +174,8 @@ def download_protein(fasta, specie, dataset):
     dat_file = utils.download_uniprot(specie, dataset)
     if not dat_file:
         sys.exit(1)
-    if not os.path.exists(fasta):
-        utils.convet_dat_to_fasta(dat_file, fasta)
-    logging.info("Finished:" % fasta )
+    utils.convet_dat_to_fasta(dat_file, fasta)
+    logging.info("Finished: %s" % fasta )
 
 
 
