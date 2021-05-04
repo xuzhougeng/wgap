@@ -20,7 +20,7 @@ rule extract_gff_from_maker:
         "gene_model/snap/round{round}/genome.ann", 
         "gene_model/snap/round{round}/genome.dna", 
     shell:"""
-    mkir -p  gene_model/snap/round{wildcards.round} && \
+    mkdir -p  gene_model/snap/round{wildcards.round} && \
     cd gene_model/snap/round{wildcards.round} && \
     maker2zff -c {params.ss} -e {params.est_ovl} -x {params.AED} {input}
     """
