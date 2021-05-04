@@ -2,7 +2,23 @@
 
 Citation: [![DOI](https://zenodo.org/badge/363893963.svg)](https://zenodo.org/badge/latestdoi/363893963)
 
-WGAP是一个基于MAKER的全基因组基因结构注释流程，
+通常全基因组注释通常伴随着多个步骤，转录组数据组装，模型训练，从头预测等步骤。
+
+BRAKER支持利用蛋白数据和转录组数据进行augustus的模型训练，最后输出augustus的预测结果，但是流程中使用到GeneMark在某些物种种表现不佳，导致augustus的模型训练存在问题。
+
+MAKER是一个比较早的软件，在已有的基因从头预测模型，根据转录组和蛋白数据输出更加可靠的基因模型。但是该流程需要我们前期处理转录组数据，以及snap和augustus的模型需要自己一步步实现，比较繁琐。
+
+为了简化基因组的注释流程，我基于snakemake开发了WGAP流程。WGAP流程的主体是MAKER，通过maker基于转录组和蛋白数据输出较为可靠的模型，之后基于模型对从头预测软件进行迭代训练，最后输出基因注释结果。
+
+WGAP能够同时使用二代和三代转录组数据，提高注释结果（三代转录组处理流程还在优化中）,支持从Swiss/Prot中下载相关物种的高质量蛋白序列。
+
+WGAP能够自动处理多种场景
+
+- 仅有转录组数据，进行模型训练和基因预测
+- 仅有蛋白数据，进行模型训练和基因预测
+- 已有模型，基于转录组和蛋白序列进行模型优化然后进行基因预测
+- 已有模型和蛋白数据，不需要预测，直接输出结果
+
 
 ## 安装
 
@@ -27,7 +43,9 @@ conda env create -n wgap -f=wgapenv.yml
 python setup.py install
 ```
 
-## 使用
+直接使用bioconda安装(TODO, 等待软件稳定)
+
+## 使用方法
 
 建立一个项目文件夹，例如annotation
 
@@ -35,11 +53,10 @@ python setup.py install
 mkdir -p annotation && cd annotation 
 ```
 
-初始化配置文件
+初始化配置文件， 这一步会复制config.yaml 和 samples.csv 文件到annotation目录下
 
 ```bash
 wgap init
-
 ```
 
 下载物种的蛋白序列, 以植物为例
@@ -48,7 +65,7 @@ wgap init
 wgap download -s plants -d sprot
 ```
 
-可能会因为网络原因下载失败，多试几次即可。
+注, 这一步可能会因为网络原因下载失败，多试几次即可。
 
 接着修改config.yaml中的配置信息
 
@@ -88,3 +105,13 @@ wgap run all -j 80
 ```
 
 使用bioconda安装的RepeatMasker需要配置LIBDIR环境变量，否则会报错。
+
+已知问题:
+
+运行到一半的时候，会提示任务被挂起
+
+```bash
+suspended (tty input)  wgap run -j 80
+```
+
+解决方法，使用 `bg %wgap` 即可让任务在后台继续运行。
