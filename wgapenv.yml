@@ -6,7 +6,7 @@ dependencies:
   - python=3.7
   - snakemake>=5.9.1
   - click=7
-  - biopython=1.74
+  - biopython=1.78
   - maker=3.01.03
   - stringtie
   - star

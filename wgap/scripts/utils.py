@@ -40,7 +40,7 @@ def download_uniprot(specie, dataset):
     try:
         urllib.request.urlretrieve(url, filename=file_path)
     except:
-        print("You can also download protein with `wget {}`, and then rerun".format(url))
+        print("You can also download protein with `wget {}`, and then rerun wgap".format(url))
     
     return file_path
 
