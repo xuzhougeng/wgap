@@ -8,4 +8,8 @@ dependencies:
   - click=7
   - biopython=1.74
   - maker=3.01.03
+  - stringtie
+  - star
+  - fastp
+  - gffread
 #  - pandas<1 # needs to be < 0.24 otherwise series are printed with header
