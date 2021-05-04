@@ -1,5 +1,7 @@
 # WGAP: Whole Genome Annotation Pipeline
 
+Citation: [![DOI](https://zenodo.org/badge/363893963.svg)](https://zenodo.org/badge/latestdoi/363893963)
+
 WGAP是一个基于MAKER的全基因组基因结构注释流程，
 
 ## 安装
@@ -78,6 +80,11 @@ wgap download -s plants -d sprot
 
 当已有snap和augustus模型时，wgap会使用已有的模型的进行优化。
 
-引用方式
+运行命令
 
-[![DOI](https://zenodo.org/badge/363893963.svg)](https://zenodo.org/badge/latestdoi/363893963)
+```bash
+export LIBDIR=~/miniconda3/envs/wgap/share/RepeatMasker/Libraries
+wgap run all -j 80 
+```
+
+使用bioconda安装的RepeatMasker需要配置LIBDIR环境变量，否则会报错。

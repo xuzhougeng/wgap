@@ -91,5 +91,11 @@ onsuccess:
 
 onerror:
     import shutil
+    import glob
     shutil.rmtree("autoAugTrain")
+    for f in glob.glob(".maker*.json"):
+        os.unlink(f)
+    for ctl in glob.glob("ctl/*.clt"):
+        os.unlink(ctl)
+    shuitl.rmtree(".maker")
     print("WGAP failed: check the log file for debugging")
