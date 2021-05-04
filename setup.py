@@ -1,16 +1,15 @@
-import io
-from os.path import dirname, join
+from os import path
+from os.path import join
 import setuptools
 
 # read the README
-from os import path
 this_directory = path.abspath(path.dirname(__file__))
 with open(join( this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setuptools.setup(
     name="wgap", # Replace with your own username
-    version="0.2.0",
+    version="0.3.0",
     url="https://github.com/xuzhuogeng/wgap",
     project_urls={
         "Bug Tracker": "https://github.com/xuzhuogeng/wgap/issues"
@@ -24,7 +23,7 @@ setuptools.setup(
     package_data = {'': ["wgap/*",]},
     data_files = [ (".", ["README.md"] ) ],
     include_package_data = True,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     entry_points = {
         'console_scripts': [
             'wgap = wgap.wgap:cli'

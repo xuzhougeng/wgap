@@ -1,6 +1,6 @@
 
 
-def get_augustus_path(wildcards):
+def get_augustus_config_path(wildcards):
     import os
     import shutil
     import sys
@@ -18,7 +18,12 @@ def get_augustus_path(wildcards):
        print("{} is not exectuable".format(augustus_species_path), file=sys.stderr)
        sys.exti(1)
 
-    return augustus_config_path
+    return os.path.abspath(augustus_config_path)
+
+def get_training_config_path(wildcards):
+    import os
+    rel_path = "gene_model/augustus/round{}/config".format(wildcards.round)
+    return os.path.abspath(rel_path)
 
 # compute teh flank region size of maker gff
 def compute_flank_region_size(wildcards):
@@ -96,8 +101,8 @@ def get_augustus_train_input(wildcards):
 # output: genemodel/augustus/round{round}/species/{specie_name}
 rule create_species_dir:
     params:
-        augustus_config_path = get_augustus_path,
-        training_config_path = lambda wildcards : "gene_model/augustus/round{}/config".format(wildcards.round),
+        augustus_config_path = get_augustus_config_path,
+        training_config_path = get_training_config_path,
         specie=specie_name
     output: touch("status/augustus_round{round}_specie_dir.done")
     shell:"""
@@ -105,7 +110,7 @@ rule create_species_dir:
     cp -r {params.augustus_config_path}/{{cgp,extrinsic,model,profile}} gene_model/augustus/round{wildcards.round}/config && 
     mkdir -p gene_model/augustus/round{wildcards.round}/config/species &&
     cp -r {params.augustus_config_path}/species/generic gene_model/augustus/round{wildcards.round}/config/species &&
-    new_species.pl --species={params.specie} --AUGUSTUS_CONFIG_PATH={prams.training_config_path}
+    new_species.pl --species={params.specie} --AUGUSTUS_CONFIG_PATH={params.training_config_path}
     """
 
 # get high quality gene model
@@ -137,12 +142,12 @@ rule first_etraining:
     params:
         training_config_path = lambda wildcards : "gene_model/augustus/round{}/config".format(wildcards.round),
         specie=specie_name
-    output: "gene_model/augustus/round{round}/etraining.stderr"
+    output: temp("gene_model/augustus/round{round}/etraining.stderr")
     log:
         "log/augustus_round{round}_etraining.log"
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
-    etraining --species={params.specie} {input[0]} 1> {log} 2> {log} 
+    etraining --species={params.specie} {input[0]} 1> {log} 2> {output} 
     """
 
 rule get_bad_gene_list:
@@ -150,12 +155,12 @@ rule get_bad_gene_list:
     output: temp("gene_model/augustus/round{round}/etraining.bad.lst")
     run:
         import re
-        fi  = open(input, "r")
-        fo  = open(output, "w")
+        fi  = open(input[0], "r")
+        fo  = open(output[0], "w")
         for line in fi:
             pattern = re.compile("n sequence (\S+):.*")
-            record = re.search(pattern, l).group(1)
-            fo.writewrite(record)
+            record = re.search(pattern, line).group(1)
+            fo.write(record)
         fi.close()
         fo.close()
 
@@ -190,26 +195,26 @@ rule auto_training:
     input: "gene_model/augustus/round{round}/train.gb"
     output: "gene_model/augustus/round{round}/autoAugTrain.log"
     params:
-        training_config_path = lambda wildcards : "gene_model/augustus/round{}/config".format(wildcards.round),
+        training_config_path = get_training_config_path,
         specie=specie_name,
         optround='3'
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
-    autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} --optrounds={params.optround} 1> {output}
+    autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} --optrounds={params.optround} --useexisting 1> {output}
     """
 
 rule augustus_model_train_status:
     input: "gene_model/augustus/round{round}/autoAugTrain.log"
     params:
-        augustus_config_path = get_augustus_path,
-        training_config_path = lambda wildcards : "gene_model/augustus/round{}/config".format(wildcards.round),
+        augustus_config_path = get_augustus_config_path,
+        training_config_path = get_training_config_path,
         specie=specie_name
     output: touch("status/augustus_train_round{round}.done")
     run:
         import shutil
         import os
-        src_dir = os.path.josin(prams.training_config_path, 'species', params.specie) 
-        des_dir = os.path.josin(prams.augustus_config_path, 'species', params.specie) 
+        src_dir = os.path.join(params.training_config_path, 'species', params.specie) 
+        des_dir = os.path.join(params.augustus_config_path, 'species', params.specie) 
         if os.path.exists( des_dir ):
             shutil.rmtree( des_dir )
         shutil.copytree( src_dir, des_dir )

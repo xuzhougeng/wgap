@@ -90,4 +90,6 @@ onsuccess:
     print("WGAP finished")
 
 onerror:
+    import shutil
+    shutil.rmtree("autoAugTrain")
     print("WGAP failed: check the log file for debugging")
