@@ -77,3 +77,7 @@ wgap download -s plants -d sprot
 - augustus_species: 物种名
 
 当已有snap和augustus模型时，wgap会使用已有的模型的进行优化。
+
+引用方式
+
+[![DOI](https://zenodo.org/badge/363893963.svg)](https://zenodo.org/badge/latestdoi/363893963)
