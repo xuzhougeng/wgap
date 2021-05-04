@@ -98,7 +98,7 @@ def run_workflow(workflow, working_dir, config_file, jobs, profile, dryrun, snak
     sample_file = conf['sample']
 
     if not os.path.exists(sample_file):
-        logging.critical(f'sample.csv is not: {sample_file}.')
+        logging.critical('{} is not existed'.format(sample_file))
         sys.exit(1)
     
     # TO DO: check file avaiable
@@ -130,7 +130,7 @@ def run_workflow(workflow, working_dir, config_file, jobs, profile, dryrun, snak
 @cli.command(
     'init',
     context_settings = {"ignore_unknown_options" : True},
-    short_help = "copy the config.yaml and sample.csv to working directoty"
+    short_help = "copy the config.yaml and samples.csv to working directoty"
 )
 @click.argument(
     'workdir',

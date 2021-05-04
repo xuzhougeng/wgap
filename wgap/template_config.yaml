@@ -7,13 +7,13 @@ protein:
 
 # RNA-seq evidence
 transcript_assemble: True
-sample: "sample.csv"
+sample: "samples.csv"
 gtf:
 
 # modeling training
 training_model: True
 training_snap_round: 123
-training_augustus_round: 0
+training_augustus_round: 3
 
 # if training_model is False, existed model must be set
 ##path to snap hmm file
@@ -39,8 +39,6 @@ round1:
     - pcov_blastx=0.6
     - pid_blastx=0.5
     - depth_blastx=2
-  exe:
-    - snap=/opt/biosoft/SNAP/snap
   opts:
     - model_org=arabidopsis
     - min_protein=100
@@ -53,8 +51,6 @@ round2:
     - pcov_blastx=0.6
     - pid_blastx=0.5
     - depth_blastx=2
-  exe:
-    - snap=/opt/biosoft/SNAP/snap
   opts:
     - model_org=arabidopsis
 
@@ -65,7 +61,5 @@ round3:
     - pcov_blastx=0.6
     - pid_blastx=0.5
     - depth_blastx=2
-  exe:
-    - snap=/opt/biosoft/SNAP/snap
   opts:
     - model_org=arabidopsis
