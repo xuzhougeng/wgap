@@ -1,6 +1,6 @@
 
 
-def get_augustus_path():
+def get_augustus_path(wildcards):
     import os
     import shutil
     import sys
@@ -23,16 +23,13 @@ def get_augustus_path():
 # compute teh flank region size of maker gff
 def compute_flank_region_size(wildcards):
     import re
+    import os 
     import math
 
     round = int(wildcards.round)
     gff = "gene_model/augustus/round{round}/maker.gff".format(round=round)
-    # if round == 1:
-    #     gtf =  "maker/maker_base.gff"
-    # elif round > 1:
-    #     gtf = "maker/maker_round{round}.gff".format(round=round)
-    # else:
-    #     raise ValueError("loop numbers must be 1 or greater: received %s" % wildcards.round)
+    if not os.path.exists(gff):
+        return 
 
     genes = dict()
         
@@ -124,7 +121,8 @@ rule get_high_quality_gff:
 rule init_training_set:
     input: 
         gff = "gene_model/augustus/round{round}/maker.gff",
-        genome = reference,
+        genome = reference
+    params:
         flank_size = compute_flank_region_size
     output: temp("gene_model/augustus/round{round}/training.gb")
     shell:"""
@@ -144,7 +142,7 @@ rule first_etraining:
         "log/augustus_round{round}_etraining.log"
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
-    etraining --species={params.species_name} {input[1]} 1> {log} 2> {log.stderr} 
+    etraining --species={params.specie} {input[0]} 1> {log} 2> {log} 
     """
 
 rule get_bad_gene_list:
@@ -168,7 +166,7 @@ rule filter_bad_gene:
         "gene_model/augustus/round{round}/etraining.bad.lst"
     output: temp("gene_model/augustus/round{round}/training.f.gb")
     shell:"""
-    filterGenes.pl {input[2]} {input[1]} 1> {output}
+    filterGenes.pl {input[1]} {input[0]} 1> {output}
     """
 
 # rule remove_redudant:
@@ -197,7 +195,7 @@ rule auto_training:
         optround='3'
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
-    autoAugTrain.pl -v -v -v --trainingset={input} --species={specie} --optrounds={params.optround} 1> {output}
+    autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} --optrounds={params.optround} 1> {output}
     """
 
 rule augustus_model_train_status:

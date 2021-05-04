@@ -3,7 +3,6 @@ import sys
 import click
 import logging
 import subprocess
-import multiprocessing
 
 from shutil import copyfile
 from snakemake import load_configfile

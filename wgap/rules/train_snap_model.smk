@@ -4,9 +4,9 @@ def get_snap_train_input(wildcards):
     round = int(wildcards.round)
 
     if round == 1:
-        return "maker_base.gff"
+        return "maker/maker_base.gff"
     elif round > 1:
-        return "maker_round{round}.gff".format(round=round)
+        return "maker/maker_round{round}.gff".format(round=round)
     else:
         raise ValueError("loop numbers must be 1 or greater: received %s" % wildcards.round)
 

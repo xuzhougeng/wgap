@@ -24,7 +24,7 @@ def get_maker_config(wildcards):
 
     maker_ctl  = wildcards.ctl
     maker_type = wildcards.type
-    json_file = "ctl/maker_{}_{}_parameter.json".format(maker_ctl, maker_type)
+    json_file = ".maker_{}_{}_parameter.json".format(maker_ctl, maker_type)
     settings = dict()
 
     # maker round
