@@ -92,7 +92,7 @@ onsuccess:
 onerror:
     import shutil
     import glob
-    if os.path.existed("autoAugTrain"):
+    if os.path.exists("autoAugTrain"):
         shutil.rmtree("autoAugTrain")
     for f in glob.glob(".maker*.json"):
         os.unlink(f)
