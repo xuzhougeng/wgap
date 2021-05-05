@@ -9,6 +9,7 @@ protein:
 transcript_assemble: True
 sample: "samples.csv"
 gtf:
+transcript_fasta:
 
 # modeling training
 training_model: True
