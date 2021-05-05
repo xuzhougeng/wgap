@@ -98,5 +98,5 @@ onerror:
         os.unlink(f)
     for ctl in glob.glob("ctl/*.ctl"):
         os.unlink(ctl)
-    shuitl.rmtree(".maker")
+    #shutil.rmtree(".maker")
     print("WGAP failed: check the log file for debugging")
