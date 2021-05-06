@@ -200,15 +200,15 @@ def download_protein(fasta, specie, dataset):
     help = 'the name rule of non-chrosome, default is scaffold',
     default ="scaffold"
 )
-@click.option('-',
+@click.option('-p',
     '--prefix',
     type = click.Path(dir_okay=True, writable=True, resolve_path=True),
     help = 'prefix of gene name',
     required=True
 )
-def run_rename(old_gff, new_gff, prefix, non_chr):
+def run_rename(oldgff, newgff, prefix, non_chr):
     logging.info("renaming the gff")
-    rename(old_gff, new_gff, prefix, non_chr)
+    rename(oldgff, newgff, prefix, non_chr)
 
 
 if __name__ == "__main__":
