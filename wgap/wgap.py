@@ -8,7 +8,7 @@ from shutil import copyfile
 from snakemake import load_configfile
 
 from wgap.scripts import utils
-from wgap.scripts import rename
+from wgap.scripts import maker_rename
 
 from wgap import __version__
 
@@ -194,11 +194,12 @@ def download_protein(fasta, specie, dataset):
     type = click.Path(dir_okay=True, writable=True, resolve_path=True),
 
 )
-@click.option('-n',
-    '--non_chr',
-    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
-    help = 'the name rule of non-chrosome, default is scaffold',
-    default ="scaffold"
+@click.option('-j',
+    '--justify',
+    help = 'The unique integer portion of the ID will be right justified  with `0`s to this length (default = 5)',
+    default = 5,
+    type = int
+
 )
 @click.option('-p',
     '--prefix',
@@ -206,9 +207,14 @@ def download_protein(fasta, specie, dataset):
     help = 'prefix of gene name',
     required=True
 )
-def run_rename(oldgff, newgff, prefix, non_chr):
+def run_rename(oldgff, newgff, prefix, justify):
     logging.info("renaming the gff")
-    rename.maker_rename(oldgff, newgff, prefix, non_chr)
+
+    if prefix is not None:
+        orig_models = maker_rename.gff_reader(oldgff)
+        justify = justify
+        out_models = maker_rename.update_gene_id(orig_models, prefix, justify)
+        maker_rename.gff_writer(out_models, newgff)
 
 
 if __name__ == "__main__":
