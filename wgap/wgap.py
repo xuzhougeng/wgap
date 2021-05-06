@@ -8,6 +8,7 @@ from shutil import copyfile
 from snakemake import load_configfile
 
 from wgap.scripts import utils
+from wgap.scripts import rename
 
 from wgap import __version__
 
@@ -177,6 +178,37 @@ def download_protein(fasta, specie, dataset):
     utils.convet_dat_to_fasta(dat_file, fasta)
     logging.info("Finished: %s" % fasta )
 
+
+@cli.command(
+    'rename',
+    context_settings = {"ignore_unknown_options" : True},
+    short_help = "rename the maker.gff base on given nomenclature"
+)
+@click.argument(
+    'oldgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+
+)
+@click.argument(
+    'newgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+
+)
+@click.option('-n',
+    '--non_chr',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+    help = 'the name rule of non-chrosome, default is scaffold',
+    default ="scaffold"
+)
+@click.option('-',
+    '--prefix',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+    help = 'prefix of gene name',
+    required=True
+)
+def run_rename(old_gff, new_gff, prefix, non_chr):
+    logging.info("renaming the gff")
+    rename(old_gff, new_gff, prefix, non_chr)
 
 
 if __name__ == "__main__":
