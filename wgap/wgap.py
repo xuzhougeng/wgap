@@ -208,7 +208,7 @@ def download_protein(fasta, specie, dataset):
 )
 def run_rename(oldgff, newgff, prefix, non_chr):
     logging.info("renaming the gff")
-    rename(oldgff, newgff, prefix, non_chr)
+    rename.maker_rename(oldgff, newgff, prefix, non_chr)
 
 
 if __name__ == "__main__":
