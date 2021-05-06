@@ -172,8 +172,6 @@ def update_gene_id(models, prefix, justify):
 
 if __name__ == '__main__':
     args = get_opt()
-
-
     if args.new_gff is not None:
         orig_models = gff_reader(args.old_gff)
         new_models = gff_reader(args.new_gff)

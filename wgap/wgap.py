@@ -178,7 +178,7 @@ def download_protein(fasta, specie, dataset):
     utils.convet_dat_to_fasta(dat_file, fasta)
     logging.info("Finished: %s" % fasta )
 
-
+# rename the protein
 @cli.command(
     'rename',
     context_settings = {"ignore_unknown_options" : True},
@@ -187,19 +187,16 @@ def download_protein(fasta, specie, dataset):
 @click.argument(
     'oldgff',
     type = click.Path(dir_okay=True, writable=True, resolve_path=True),
-
 )
 @click.argument(
     'newgff',
     type = click.Path(dir_okay=True, writable=True, resolve_path=True),
-
 )
 @click.option('-j',
     '--justify',
     help = 'The unique integer portion of the ID will be right justified  with `0`s to this length (default = 5)',
     default = 5,
     type = int
-
 )
 @click.option('-p',
     '--prefix',
@@ -216,6 +213,31 @@ def run_rename(oldgff, newgff, prefix, justify):
         out_models = maker_rename.update_gene_id(orig_models, prefix, justify)
         maker_rename.gff_writer(out_models, newgff)
 
+# update the protein
+@cli.command(
+    'update',
+    context_settings = {"ignore_unknown_options" : True},
+    short_help = "update the maker.gff base on the output of apollo"
+)
+@click.argument(
+    'oldgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+)
+@click.argument(
+    'newgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+)
+@click.option('-o',
+    '--output',
+    type = str,
+    help = 'output gff',
+    required=True
+)
+def update_gff(oldgff, newgff, outgff):
+    orig_models = maker_rename.gff_reader(oldgff)
+    new_models = maker_rename.gff_reader(newgff)
+    out_models = maker_rename.update_gene_model(orig_models, new_models)
+    maker_rename.gff_writer(out_models, outgff)
 
 if __name__ == "__main__":
     cli()
