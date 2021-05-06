@@ -7,9 +7,11 @@ dependencies:
   - snakemake>=5.9.1
   - click=7
   - biopython=1.78
+  - bcbio-gff
   - maker=3.01.03
   - stringtie
   - star
   - fastp
   - gffread
+
 #  - pandas<1 # needs to be < 0.24 otherwise series are printed with header

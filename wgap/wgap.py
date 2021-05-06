@@ -203,7 +203,7 @@ def download_protein(fasta, specie, dataset):
 )
 @click.option('-p',
     '--prefix',
-    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+    type = str,
     help = 'prefix of gene name',
     required=True
 )
