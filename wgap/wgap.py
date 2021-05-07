@@ -188,23 +188,22 @@ def download_protein(fasta, specie, dataset):
 )
 @click.argument(
     'makergff',
-    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
-    help = 'maker.gff'
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),  
 )
 @click.argument(
     'abinitgff',
     type = click.Path(dir_okay=True, writable=True, resolve_path=True),
-    help = 'abinit.gff'
 )
 @click.argument(
     'genelist',
-    type = click.Path(dir_okay=True, writable=True, resolve_path=True)
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
 )
 @click.option('-o',
     '--outgff',
     type = str,
-    help = 'output gff, default is maker_recue.gff',
-    default="maker_recue.gff"
+    default="maker_recue.gff",
+    show_default=True,
+    help="result gff"
 )
 def run_rescue(makergff, abinitgff, genelist, outgff):
     logging.info("rescue the maker.gff")
@@ -242,11 +241,10 @@ def run_rescue(makergff, abinitgff, genelist, outgff):
 def run_rename(oldgff, newgff, prefix, justify):
     logging.info("renaming the gff")
 
-    if prefix is not None:
-        orig_models = maker_update.gff_reader(oldgff)
-        justify = justify
-        out_models = maker_update.update_gene_id(orig_models, prefix, justify)
-        maker_update.gff_writer(out_models, newgff)
+    orig_models = maker_update.gff_reader(oldgff)
+    justify = justify
+    out_models = maker_update.update_gene_id(orig_models, prefix, justify, "wgap")
+    maker_update.gff_writer(out_models, newgff)
 
 # update the protein
 @cli.command(

@@ -40,7 +40,7 @@ def create_gene_model(seqfeature, source):
     mRNA_feature = SeqFeature(
         match.location, type="mRNA", qualifiers=mRNA_qualifiers, id = mRNA_name
     )
-    gene_feature.sub_features = mRNA_feature
+    gene_feature.sub_features = [mRNA_feature]
     # CDS and exon feature
     feature_list = []
     count = 0 

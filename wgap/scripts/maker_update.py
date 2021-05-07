@@ -93,6 +93,10 @@ def format_gene_model(subfeature, ID, count, source = "."):
             sub.qualifiers['ID'] = name
             sub.qualifiers['Parent'] = ID
             sub.qualifiers['source'] = source
+            if '_AED' in sub.qualifiers:
+                del sub.qualifiers['_AED']
+            if '_QI' in sub.qualifiers:
+                del sub.qualifiers['_QI']
             format_gene_model(sub.sub_features, sub.qualifiers['ID'], count, source)
         else :
             feature_type = sub.type 
@@ -148,7 +152,7 @@ def update_gene_model(orig_models, new_models ):
 
     return orig_models
 
-def update_gene_id(models, prefix, justify):
+def update_gene_id(models, prefix, justify, source="."):
     
     scaffold_count = 1
     for rec in models:
@@ -160,14 +164,14 @@ def update_gene_id(models, prefix, justify):
             for count,subfeature in enumerate(rec.features):
                 suffix = str(count + 1) + "0"
                 gene_name = new_prefix + suffix.zfill(justify)
-                format_gene_model([subfeature], gene_name, {}, ".")
+                format_gene_model([subfeature], gene_name, {}, source)
         else:
             #contig, scaffold
             for subfeature in rec.features:
                 scaffold_count += 1
                 suffix = str(scaffold_count) + "0"
                 gene_name = prefix + suffix.zfill(justify)
-                format_gene_model([subfeature], gene_name, {}, ".")
+                format_gene_model([subfeature], gene_name, {}, source)
     return models
 
 if __name__ == '__main__':
