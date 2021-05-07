@@ -1,11 +1,37 @@
+# split the maker.gff base on the 2nd column
+rule generate_output:
+    input: "maker/maker_annotation.gff"
+    output: "maker.gff"
+    run:
+        maker  = open("maker.gff", "w")
+        abinit = open("abinit.gff", "w")
+        other  = open("other.gff", "w")
+        with open(input[0]) as f:
+            for line in f:
+                rec = line.strip().split('\t')
+                if len(rec) < 9:
+                    continue
+                if rec[1] == 'maker':
+                    maker.write(line)
+                elif "masked" in rec[1]:
+                    abinit.write(line)
+                else:
+                    other.write(line)
+        maker.close()
+        abinit.close()
+        other.close()
+
 
 # rule to generate maker.gff
 rule maker_annotation_output:
     input: "status/maker_annotation.done"
     params:
-         base_name = "maker",
+         base_name = "maker/maker_annotation",
          dsindex = "{ds}.maker.output/{ds}_master_datastore_index.log".format(ds=specie_name)
-    output: "maker.gff"
+    output: 
+        gff = "maker/maker_annotation.gff",
+        protein = "maker/maker_annotation.all.maker.proteins.fasta",
+        transcript = "maker/maker_annotation.all.maker.transcripts.fasta" 
     shell:"""
     fasta_merge -o {params.base_name} -d {params.dsindex} && 
     gff3_merge -o {output} -d {params.dsindex}
@@ -45,11 +71,12 @@ def get_maker_config(wildcards):
     else: # opts setting
         # default settings
         settings['genome'] = reference
+        settings['protein'] = protein
+        settings['est'] = ','.join(transcript_fasta)
         if transcript_assemble:
             settings['est_gff'] = ','.join(all_ngs_gff3)
         else:
-            settings['est_gff'] = gtf
-        settings['protein'] = protein
+            settings['est_gff'] = gtf 
         if maker_type == "annotation":
             # training model: setting snap, hmm 
             if training_model:
@@ -60,7 +87,6 @@ def get_maker_config(wildcards):
             else: 
                 settings['snaphmm'] = snaphmm
                 settings['augustus_species'] = augustus_species
-
 
         if maker_type == "base": # train round = 1
             if snaphmm or augustus_species:

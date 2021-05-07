@@ -8,7 +8,7 @@ protein:
 # RNA-seq evidence
 transcript_assemble: True
 sample: "samples.csv"
-gtf:
+transcript_gtf:
 transcript_fasta:
 
 # modeling training

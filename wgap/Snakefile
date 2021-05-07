@@ -29,7 +29,8 @@ MPI = config.get('parallel', False)
 
 ## assemble the transcript
 transcript_assemble = config.get('transcript_assemble', False)
-gtf = config.get('gtf', None)
+gtf = config.get('transcript_gtf', None)
+transcript_fasta = config.get('transcript_fasta','')
 SKIP_QC = False
 if transcript_assemble:
     if config['sample'] is None or not os.path.isfile(config['sample']):

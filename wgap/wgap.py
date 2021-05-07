@@ -8,7 +8,8 @@ from shutil import copyfile
 from snakemake import load_configfile
 
 from wgap.scripts import utils
-from wgap.scripts import maker_rename
+from wgap.scripts import maker_update
+from wgap.scripts import maker_rescue
 
 from wgap import __version__
 
@@ -41,7 +42,6 @@ def cli(obj):
     """
 
 #cli.add_command(run_init)
-
 
 # workflow command
 @cli.command(
@@ -128,6 +128,7 @@ def run_workflow(workflow, working_dir, config_file, jobs, profile, dryrun, snak
         logging.critical(e)
         exit(1)
 
+# initiate project
 @cli.command(
     'init',
     context_settings = {"ignore_unknown_options" : True},
@@ -143,7 +144,6 @@ def init_workdir(workdir):
 
     copyfile(config_file, os.path.join(workdir, "config.yaml"))
     copyfile(sample_file, os.path.join(workdir, "samples.csv"))
-    
 
 # download command for homology evidence
 @cli.command(
@@ -178,7 +178,42 @@ def download_protein(fasta, specie, dataset):
     utils.convet_dat_to_fasta(dat_file, fasta)
     logging.info("Finished: %s" % fasta )
 
-# rename the protein
+############################################
+#  rescue the gff with given list of gene
+############################################
+@cli.command(
+    'rescue',
+    context_settings = {"ignore_unknown_options" : True},
+    short_help = "rescue the maker.gff base on given gene list"
+)
+@click.argument(
+    'makergff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+    help = 'maker.gff'
+)
+@click.argument(
+    'abinitgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+    help = 'abinit.gff'
+)
+@click.argument(
+    'genelist',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True)
+)
+@click.option('-o',
+    '--outgff',
+    type = str,
+    help = 'output gff, default is maker_recue.gff',
+    default="maker_recue.gff"
+)
+def run_rescue(makergff, abinitgff, genelist, outgff):
+    logging.info("rescue the maker.gff")
+    maker_rescue.rescue(makergff, abinitgff, genelist, outgff)
+
+
+##############################################
+#  rename the gff
+##############################################
 @cli.command(
     'rename',
     context_settings = {"ignore_unknown_options" : True},
@@ -208,10 +243,10 @@ def run_rename(oldgff, newgff, prefix, justify):
     logging.info("renaming the gff")
 
     if prefix is not None:
-        orig_models = maker_rename.gff_reader(oldgff)
+        orig_models = maker_update.gff_reader(oldgff)
         justify = justify
-        out_models = maker_rename.update_gene_id(orig_models, prefix, justify)
-        maker_rename.gff_writer(out_models, newgff)
+        out_models = maker_update.update_gene_id(orig_models, prefix, justify)
+        maker_update.gff_writer(out_models, newgff)
 
 # update the protein
 @cli.command(
@@ -234,10 +269,11 @@ def run_rename(oldgff, newgff, prefix, justify):
     required=True
 )
 def update_gff(oldgff, newgff, outgff):
-    orig_models = maker_rename.gff_reader(oldgff)
-    new_models = maker_rename.gff_reader(newgff)
-    out_models = maker_rename.update_gene_model(orig_models, new_models)
-    maker_rename.gff_writer(out_models, outgff)
+    logging.info("update the gff")
+    orig_models = maker_update.gff_reader(oldgff)
+    new_models = maker_update.gff_reader(newgff)
+    out_models = maker_update.update_gene_model(orig_models, new_models)
+    maker_update.gff_writer(out_models, outgff)
 
 if __name__ == "__main__":
     cli()
