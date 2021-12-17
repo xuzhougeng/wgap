@@ -32,14 +32,25 @@ transcript_assemble = config.get('transcript_assemble', False)
 gtf = config.get('transcript_gtf', None)
 transcript_fasta = config.get('transcript_fasta','')
 SKIP_QC = False
+
 if transcript_assemble:
     if config['sample'] is None or not os.path.isfile(config['sample']):
         print("RNA-seq sample file is not existed", file=sys.stderr)
         sys.exit(1)
     sampleTable = pd.read_csv(config['sample'], index_col=0,sep=",")
-    tissues = np.unique( sampleTable['tissue'])
-    all_ngs_gff3 = expand("rna-seq/ngs/04-final/{tissue}.gff3", tissue = tissues)
-    print( "RNA-seq:\n" +  "\n".join(all_ngs_gff3))
+    all_gff3 = set()
+    for row in sampleTable.iterrows():
+        tissue = row[1]['tissue']
+        tech   = row[1]['technology']
+        sample_name = "{}_{}".format(tissue, tech)
+        if tech in ['pb', 'ont']:
+            all_gff3.add( "rna-seq/tgs/04-final/{}.gff3".format(sample_name) )
+        else:
+            all_gff3.add( "rna-seq/ngs/04-final/{}.gff3".format(sample_name) )
+
+    # tgs
+    all_gff3 = list(all_gff3)
+    print( "RNA-seq:\n" +  "\n".join(all_gff3))
 
 
 ## training the model
@@ -74,7 +85,7 @@ rule all:
 
 # sub rules
 rule transcript_assembly:
-    input: all_ngs_gff3
+    input: all_gff3
     output: touch("status/transcript_assemble.done")
 
 rule gene_model_training:
@@ -84,6 +95,7 @@ rule gene_model_training:
 
 # add the rules
 include: "rules/ngs_transcript_assembly.smk"
+include: "rules/tgs_transcript_assembly.smk"
 include: "rules/model_training.smk"
 include: "rules/maker.smk"
 

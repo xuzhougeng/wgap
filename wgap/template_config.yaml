@@ -64,3 +64,27 @@ round3:
     - depth_blastx=2
   opts:
     - model_org=arabidopsis
+
+
+# minimap2 paramater 
+mm2_idx_opts: ""
+mm2_idx_threads: 10
+mm2_map_threads: 20
+mm2_pb_map_opts: ""
+mm2_ont_map_opts: ""
+mm2_pb_min_mq: 40
+mm2_ont_min_mq: 40
+
+
+
+# STAR aligner parameter
+star_idx_opts: "--genomeSAindexNbases 14"
+star_idx_threads: 10
+
+# StringTie paramter
+stringtie_thread: 10
+ngs_stringtie_assembly_opts: ""
+ngs_rf_stringtie_assembly_opts: ""
+ngs_fr_stringtie_assembly_opts: ""
+tgs_pb_stringtie_assembly_opts: ""
+tgs_ont_stringtie_assembly_opts: ""

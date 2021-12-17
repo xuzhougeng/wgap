@@ -9,7 +9,7 @@ dependencies:
   - biopython=1.78
   - bcbio-gff
   - maker=3.01.03
-  - stringtie
+  - stringtie>=2.1.7
   - star
   - fastp
   - gffread

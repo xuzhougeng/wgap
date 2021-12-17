@@ -1,24 +1,34 @@
 # assembly the RNA-seq data
 import os
 
-
 # prepare the input file 
-def get_files_from_sampleTable(wildcards):
+def get_ngs_files_from_sampleTable(wildcards):
     sample = wildcards.sample
     #print(sampleTable)
     samples = sampleTable.loc[ sample, ['fq1', 'fq2']  ].to_list()
     #print(samples)
     return samples
 
-def get_sample_of_same_tissue(wildcards):
+def get_sample_of_ngs(wildcards):
     tissue = wildcards.tissue
-    samples = sampleTable.loc[sampleTable['tissue'] == tissue].index.to_list()
-    return [ "rna-seq/ngs/03-gtf-assembly/{sample}.gtf".format(sample = sample ) for sample in samples]
+    samples = sampleTable.loc[(sampleTable['tissue'] == tissue) & (sampleTable['technology'] == "ngs" ) ].index.to_list()
+    return [ "rna-seq/ngs/03-gtf-assembly/{sample}_ngs.gtf".format(sample = sample ) for sample in samples]
+
+def get_sample_of_ngs_ss_rf(wildcards):
+    tissue = wildcards.tissue
+    samples = sampleTable.loc[(sampleTable['tissue'] == tissue) & (sampleTable['technology'] == "ngs-rf" )].index.to_list()
+    return [ "rna-seq/ngs/03-gtf-assembly/{sample}_ngs-rf.gtf".format(sample = sample ) for sample in samples]
+
+
+def get_sample_of_ngs_ss_fr(wildcards):
+    tissue = wildcards.tissue
+    samples = sampleTable.loc[(sampleTable['tissue'] == tissue) & (sampleTable['technology'] == "ngs-fr" )].index.to_list()
+    return [ "rna-seq/ngs/03-gtf-assembly/{sample}_ngs-fr.gtf".format(sample = sample ) for sample in samples]
 
 
 if SKIP_QC:
     rule pre_processing:
-       input: get_files_from_sampleTable
+       input: get_ngs_files_from_sampleTable
        output:
            r1 = temp("rna-seq/ngs/01-clean-data/{sample}_R1.fq.gz"),
            r2 = temp("rna-seq/ngs/01-clean-data/{sample}_R2.fq.gz")
@@ -28,7 +38,7 @@ if SKIP_QC:
            os.symlink(input[1], output.r2)
 else:
     rule pre_processing:
-        input: get_files_from_sampleTable
+        input: get_ngs_files_from_sampleTable
         output:
             r1 = temp("rna-seq/ngs/01-clean-data/{sample}_R1.fq.gz"),
             r2 = temp("rna-seq/ngs/01-clean-data/{sample}_R2.fq.gz")
@@ -41,18 +51,18 @@ else:
             -o {output.r1} -O {output.r2} -j {params.json} -h {params.html}"""
 
 # build STAR index
-rule build_index:
+rule build_STAR_index:
     input: reference
     output: directory('rna-seq/ngs/star_index')
     params:
-        SAindexNbases = "14"
-    threads: 10
+        opts = config.get("star_idx_opts", "")
+    threads: config.get('star_idx_threads', 10)
     shell:"""
     STAR \
     --runThreadN {threads} \
     --runMode genomeGenerate \
     --genomeDir {output} \
-    --genomeSAindexNbases {params.SAindexNbases}\
+    {params.opts} \
     --genomeFastaFiles {input}
     """
 
@@ -81,30 +91,60 @@ rule rna_seq_align:
     """
 
 # assembly each tissue with stringtie
-rule stringtie_assembly:
+# normal sequencing
+rule ngs_stringtie_assembly:
     input: "rna-seq/ngs/02-read-align/{sample}_Aligned.sortedByCoord.out.bam"
-    output:"rna-seq/ngs/03-gtf-assembly/{sample}.gtf"
-    threads: 10
-    shell: "stringtie -p {threads} {input} -o {output}"
+    output:"rna-seq/ngs/03-gtf-assembly/{sample}_ngs.gtf"
+    params:
+        opts = config.get("ngs_stringtie_assembly_opts", "")
+    threads: config.get('stringtie_assembly_opts', 10)
+    shell: "stringtie {params.opts} -p {threads} {input} -o {output}"
 
-rule stringtie_merge_tissue:
-    input: get_sample_of_same_tissue
-    output: "rna-seq/ngs/04-final/{tissue}.gtf"
-    shell: "stringtie --merge -o {output} {input}"
+rule ngs_stringtie_merge:
+    input: get_sample_of_ngs
+    output: "rna-seq/ngs/04-final/{tissue}_ngs.gtf"
+    params:
+        label = lambda wildcards: "{tissue}".format(wildcards.tissue)
+    shell: "stringtie -l {params.label} --merge -o {output} {input}"
 
-rule prepare_maker_gff_input:
-    input: "rna-seq/ngs/04-final/{tissue}.gtf"
-    output: "rna-seq/ngs/04-final/{tissue}.gff3"
+# strand-specific seqeuncing, assume stranded library fr-firststrand 
+rule ngs_ss_rf_stringtie_assembly:
+    input: "rna-seq/ngs/02-read-align/{sample}_Aligned.sortedByCoord.out.bam"
+    output:"rna-seq/ngs/03-gtf-assembly/{sample}_ngs-fr.gtf"
+    params:
+        opts = config.get("ngs_fr_stringtie_assembly_opts", "")
+    threads: config.get('stringtie_thread', 10)
+    shell: "stringtie {params.opts} --rf -p {threads} {input} -o {output}"
+
+rule ngs_ss_rf_stringtie_merge:
+    input: get_sample_of_ngs_ss_rf
+    output: "rna-seq/ngs/04-final/{tissue}_ngs-rf.gtf"
+    params:
+        label = lambda wildcards: "{tissue}_rf".format(wildcards.tissue)
+    shell: "stringtie -l {params.label} --merge -o {output} {input}"
+
+# strand-specific seqeuncing, assume stranded library fr-secondstrand
+rule ngs_ss_fr_stringtie_assembly:
+    input: "rna-seq/ngs/02-read-align/{sample}_Aligned.sortedByCoord.out.bam"
+    output:"rna-seq/ngs/03-gtf-assembly/{sample}_ngs-fr.gtf"
+    params:
+        opts = config.get("ngs_rf_stringtie_assembly_opts", "")
+    threads: config.get('stringtie_thread', 10)
+    shell: "stringtie {params.opts} --fr -p {threads} {input} -o {output}"
+
+rule ngs_ss_rf_stringtie_merge:
+    input: get_sample_of_ngs_ss_fr
+    output: "rna-seq/ngs/04-final/{tissue}_ngs-fr.gtf"
+    params:
+        label = lambda wildcards: "{tissue}_fr".format(wildcards.tissue)
+    shell: "stringtie -l {params.label} --merge -o {output} {input}"
+
+# generate the output
+rule prepare_ngs_maker_gff_input:
+    input: "rna-seq/ngs/04-final/{tissue}_{tech}.gtf"
+    output: "rna-seq/ngs/04-final/{tissue}_{tech}.gff3"
     shell: """
     gffread -E {input} -o- | sed "s#transcript#match#g" |sed "s#exon#match_part#g" > {output}
     """
-
-"""
-rule trinity_denovo_assembly:
-    input:
-    output:
-
-rule trinity_guided_assembly:
-"""
 
 

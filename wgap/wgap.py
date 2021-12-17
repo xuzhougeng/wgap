@@ -145,6 +145,14 @@ def init_workdir(workdir):
     copyfile(config_file, os.path.join(workdir, "config.yaml"))
     copyfile(sample_file, os.path.join(workdir, "samples.csv"))
 
+
+# @cli.command(
+#     'epoxrt',
+#     context_settings = {"ignore_unknown_options": True},
+#     short_help = "export the annotation for Apollo visualization"
+# )
+# def export():
+
 # download command for homology evidence
 @cli.command(
     'download',
