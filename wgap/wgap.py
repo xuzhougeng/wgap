@@ -52,7 +52,7 @@ def cli(obj):
 @click.argument(
     "workflow",
     default="all",
-    type=click.Choice(["None", "all", "test"]),
+    type=click.Choice(["all", "transcript_assembly", "gene_model_training", "test"]),
 )
 @click.option("-w",
     "--working-dir",

@@ -11,6 +11,8 @@ dependencies:
   - maker=3.01.03
   - stringtie>=2.1.7
   - star
+  - minimap2
+  - samtools
   - fastp
   - gffread
 

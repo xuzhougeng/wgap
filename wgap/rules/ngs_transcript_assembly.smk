@@ -17,6 +17,7 @@ def get_sample_of_ngs(wildcards):
 def get_sample_of_ngs_ss_rf(wildcards):
     tissue = wildcards.tissue
     samples = sampleTable.loc[(sampleTable['tissue'] == tissue) & (sampleTable['technology'] == "ngs-rf" )].index.to_list()
+    #print([ "rna-seq/ngs/03-gtf-assembly/{sample}_ngs-rf.gtf".format(sample = sample ) for sample in samples])
     return [ "rna-seq/ngs/03-gtf-assembly/{sample}_ngs-rf.gtf".format(sample = sample ) for sample in samples]
 
 
@@ -104,13 +105,13 @@ rule ngs_stringtie_merge:
     input: get_sample_of_ngs
     output: "rna-seq/ngs/04-final/{tissue}_ngs.gtf"
     params:
-        label = lambda wildcards: "{tissue}".format(wildcards.tissue)
+        label = lambda wildcards: "{tissue}".format(tissue=wildcards.tissue)
     shell: "stringtie -l {params.label} --merge -o {output} {input}"
 
-# strand-specific seqeuncing, assume stranded library fr-firststrand 
+# strand-specific seqeuncing, assume stranded library rf-firststrand
 rule ngs_ss_rf_stringtie_assembly:
     input: "rna-seq/ngs/02-read-align/{sample}_Aligned.sortedByCoord.out.bam"
-    output:"rna-seq/ngs/03-gtf-assembly/{sample}_ngs-fr.gtf"
+    output:"rna-seq/ngs/03-gtf-assembly/{sample}_ngs-rf.gtf"
     params:
         opts = config.get("ngs_fr_stringtie_assembly_opts", "")
     threads: config.get('stringtie_thread', 10)
@@ -120,7 +121,7 @@ rule ngs_ss_rf_stringtie_merge:
     input: get_sample_of_ngs_ss_rf
     output: "rna-seq/ngs/04-final/{tissue}_ngs-rf.gtf"
     params:
-        label = lambda wildcards: "{tissue}_rf".format(wildcards.tissue)
+        label = lambda wildcards: "{tissue}_rf".format(tissue=wildcards.tissue)
     shell: "stringtie -l {params.label} --merge -o {output} {input}"
 
 # strand-specific seqeuncing, assume stranded library fr-secondstrand
@@ -132,11 +133,11 @@ rule ngs_ss_fr_stringtie_assembly:
     threads: config.get('stringtie_thread', 10)
     shell: "stringtie {params.opts} --fr -p {threads} {input} -o {output}"
 
-rule ngs_ss_rf_stringtie_merge:
+rule ngs_ss_fr_stringtie_merge:
     input: get_sample_of_ngs_ss_fr
     output: "rna-seq/ngs/04-final/{tissue}_ngs-fr.gtf"
     params:
-        label = lambda wildcards: "{tissue}_fr".format(wildcards.tissue)
+        label = lambda wildcards: "{tissue}_fr".format(tissue=wildcards.tissue)
     shell: "stringtie -l {params.label} --merge -o {output} {input}"
 
 # generate the output

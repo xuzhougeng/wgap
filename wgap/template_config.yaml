@@ -76,7 +76,6 @@ mm2_pb_min_mq: 40
 mm2_ont_min_mq: 40
 
 
-
 # STAR aligner parameter
 star_idx_opts: "--genomeSAindexNbases 14"
 star_idx_threads: 10
