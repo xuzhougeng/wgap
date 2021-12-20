@@ -7,7 +7,7 @@ def get_augustus_config_path(wildcards):
     augustus_path = shutil.which('augustus')
     if not os.access(augustus_path, os.X_OK):
        print("{} is not exectuable".format(augustus_path), file=sys.stderr)
-       sys.exti(1)
+       sys.exit(1)
     
     default_config_path = os.path.join( os.path.dirname(os.path.dirname(augustus_path)), "config")
 
@@ -16,7 +16,7 @@ def get_augustus_config_path(wildcards):
     
     if not os.access(augustus_species_path, os.W_OK):
        print("{} is not exectuable".format(augustus_species_path), file=sys.stderr)
-       sys.exti(1)
+       sys.exit(1)
 
     return os.path.abspath(augustus_config_path)
 
@@ -97,6 +97,16 @@ def get_augustus_train_input(wildcards):
     else:
         raise ValueError("loop numbers must be 1 or greater: received %s" % wildcards.round)
 
+def get_augustus_train_input_protein(wildcards):
+    round = int(wildcards.round)
+
+    if round == 1:
+        return "maker/maker_base.all.maker.proteins.fasta"
+    elif round > 1:
+        return "maker/maker_round{round}.all.maker.proteins.fasta".format(round=round)
+    else:
+        raise ValueError("loop numbers must be 1 or greater: received %s" % wildcards.round)
+
 # create species_dir
 # output: genemodel/augustus/round{round}/species/{specie_name}
 rule create_species_dir:
@@ -118,9 +128,9 @@ rule get_high_quality_gff:
     input: get_augustus_train_input
     output: "gene_model/augustus/round{round}/maker.gff"
     params:
-        script_dir = script_dir,
+        script_dir = script_dir
     shell:"""
-    python {script_dir}/maker_filter.py -e 1 -d 0 {input} > {output}
+    python {params.script_dir}/maker_filter.py -e 1 -d 0 {input} > {output}
     """
 
 rule init_training_set:
@@ -174,18 +184,49 @@ rule filter_bad_gene:
     filterGenes.pl {input[1]} {input[0]} 1> {output}
     """
 
-# rule remove_redudant:
-#     input:
-#     output:
-#     shell:"""
-#     perl -n -e '$_ =~/\/gene=\"(\S+)\"/ ;print "$1\n"' training.f.gb | sort -u > good_gene.lst
-#     seqkit grep -f good_gene.lst ${prefix}.all.maker.proteins.fasta > good_gene_protein.fasta
-#     perl $PWD/aa2nonred.pl --cores=100 --maxid=0.7 good_gene_protein.fasta traingenes.good.nr.fa 
-#     seqkit seq -ni traingenes.good.nr.fa > traingenes.good.nr.txt
-#     filterGenes.pl traingenes.good.nr.txt training.f.gb > training.ff.gb 
-#     """
+rule get_redudant_gene:
+    input: 
+        genbank = "gene_model/augustus/round{round}/training.f.gb",
+        protein = get_augustus_train_input_protein    
+    output: temp("gene_model/augustus/round{round}/redudant.gene.lst")
+    params:
+        maxid = "0.7"
+    threads: 20
+    shell:"""
+    mkdir -p tmp &&
+    perl -n -e '$_ =~/\/gene=\"(\S+)\"/ ;print "$1\n"' {input.genbank} |
+      seqkit grep -f - {input.protein} > tmp/good_gene_protein.fasta &&
+      aa2nonred.pl --cores={threads} --maxid={params.maxid} tmp/good_gene_protein.fasta tmp/traingenes.good.nr.fa &&
+      seqkit seq -ni tmp/traingenes.good.nr.fa > {output}
+    """
+
+rule remove_redudant_gene:
+    input:
+        "gene_model/augustus/round{round}/training.f.gb",
+        "gene_model/augustus/round{round}/redudant.gene.lst"
+    output: temp("gene_model/augustus/round{round}/training.ff.gb")
+    shell:"""
+    filterGenes.pl {input[1]} {input[0]} > {output} 
+    """
+
+
+rule downsample_gene:
+    input: "gene_model/augustus/round{round}/training.ff.gb"
+    output: temp("gene_model/augustus/round{round}/training.fff.gb")
+    params:
+        threshold = config.get("training_augustus_gene_num", 1000)
+    shell:"""
+    if [[ {params.threshold} -eq 0 ]]; then
+        cp {input} {output}
+    else
+        randomSplit.pl {input} {params.threshold} &&
+        cp {input}.test {output} && rm -f {input}.train
+    fi
+    """
+
+
 rule get_final_train_geneset:
-    input: "gene_model/augustus/round{round}/training.f.gb"
+    input: "gene_model/augustus/round{round}/training.fff.gb"
     output: "gene_model/augustus/round{round}/train.gb"
     shell:"""
     cp {input} {output}
@@ -197,10 +238,14 @@ rule auto_training:
     params:
         training_config_path = get_training_config_path,
         specie=specie_name,
-        optround='3'
+        optround='3',
+        flank_size=compute_flank_region_size
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
-    autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} --optrounds={params.optround} --useexisting 1> {output}
+    autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} 
+      --flanking_DNA={params.flank_size}
+      --useexisting 
+      --optrounds={params.optround} 1> {output}
     """
 
 rule augustus_model_train_status:

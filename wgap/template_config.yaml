@@ -15,6 +15,8 @@ transcript_fasta:
 training_model: True
 training_snap_round: 123
 training_augustus_round: 3
+# downsample the gene number for augustus training, set 0 to use all gene
+training_augustus_gene_num: 1000
 
 # if training_model is False, existed model must be set
 ##path to snap hmm file
