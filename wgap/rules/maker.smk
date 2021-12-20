@@ -52,7 +52,7 @@ def get_maker_config(wildcards):
     maker_type = wildcards.type
     json_file = ".maker_{}_{}_parameter.json".format(maker_ctl, maker_type)
     settings = dict()
-
+    
     # maker round
     if maker_type.find("round") >= 0:
         round = int(maker_type[5:])
@@ -71,10 +71,13 @@ def get_maker_config(wildcards):
     else: # opts setting
         # default settings
         settings['genome'] = reference
-        settings['protein'] = protein
-        settings['est'] = ','.join(transcript_fasta)
+        if protein is not None:
+            settings['protein'] = protein
+        if transcript_fasta is not None:
+            settings['est'] = ','.join(transcript_fasta)    
+        # set the gff3 in est_gff
         if transcript_assemble:
-            settings['est_gff'] = ','.join(all_ngs_gff3)
+            settings['est_gff'] = ','.join(all_gff3)
         else:
             settings['est_gff'] = gtf 
         if maker_type == "annotation":
@@ -94,7 +97,8 @@ def get_maker_config(wildcards):
                 settings['augustus_species'] = augustus_species
             else:
                 settings['est2genome'] = '1'
-                settings['protein2genome'] = '1'
+                if protein is not None:
+                    settings['protein2genome'] = '1'
         
         if maker_type.find("round") >= 0: #  train round > 1
             if str(round-1) in snap_rounds :

@@ -32,7 +32,8 @@ rule tgs_pre_processing:
     output: temp("rna-seq/tgs/01-clean-data/{sample}.fq.gz"),
     run:
         import os
-        os.symlink(input, output)
+        #os.makedirs("rna-seq/tgs/01-clean-data/", exist_ok = True)
+        os.symlink(input[0], output[0])
 
 rule pb_map:
     input:
@@ -45,8 +46,8 @@ rule pb_map:
         min_mq = config.get("mm2_pb_min_mq", 40),
     threads: config.get("mm2_map_threads", 20)
     shell:"""
-    minimap2 -t {threads} {params.opts} -ax splice:hq -uf {input.index} {input.fastq} \ |
-      samtools view -q {x.min_mq} -F 2304 -Sb - \
+    minimap2 -t {threads} {params.opts} -ax splice:hq -uf {input.index} {input.fastq} |  \
+      samtools view -q {x.min_mq} -F 2304 -Sb - |\
       samtools sort -@ {threads} -o {output.bam} - && \
       samtools index {output.bam}  
     """
@@ -63,8 +64,8 @@ rule pb_ont:
         min_mq = config.get("mm2_ont_min_mq", 40),
     threads: config.get("mm2_map_threads", 20)
     shell:"""
-    minimap2 -t {threads} {params.opts} -ax splice -uf {input.index} {input.fastq} \ |
-      samtools view -q {params.min_mq} -F 2304 -Sb - \
+    minimap2 -t {threads} {params.opts} -ax splice -uf {input.index} {input.fastq} | \
+      samtools view -q {params.min_mq} -F 2304 -Sb - |\
       samtools sort -@ {threads} -o {output.bam} - && \
       samtools index {output.bam}  
     """

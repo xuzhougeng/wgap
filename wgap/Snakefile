@@ -12,7 +12,6 @@ min_version("5.31.0")
 
 #configfile: "config.yaml"
 
-
 work_dir = os.path.abspath(workflow.snakefile)
 script_dir = os.path.join(os.path.dirname(work_dir), "scripts")
 sys.path.append( script_dir )
@@ -29,7 +28,7 @@ MPI = config.get('parallel', False)
 
 ## assemble the transcript
 transcript_assemble = config.get('transcript_assemble', False)
-gtf = config.get('transcript_gtf', None)
+gtf = config.get('transcript_gtf', '')
 transcript_fasta = config.get('transcript_fasta','')
 SKIP_QC = False
 
@@ -53,12 +52,12 @@ if transcript_assemble:
     print( "RNA-seq:\n" +  "\n".join(all_gff3))
 
 
-## training the model
+# training the model
 training_model = config.get("training_model", False)
 
 ## existed gene model
-snaphmm = config.get('snaphmm', False)
-augustus_species = config.get('augustus_species', False)
+snaphmm = config.get('snaphmm', "")
+augustus_species = config.get('augustus_species', "")
 
 snap_rounds = '0'
 augustus_rounds = '0'
