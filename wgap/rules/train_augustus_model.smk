@@ -184,21 +184,47 @@ rule filter_bad_gene:
     filterGenes.pl {input[1]} {input[0]} 1> {output}
     """
 
-rule get_redudant_gene:
+rule create_aa_db:
     input: 
         genbank = "gene_model/augustus/round{round}/training.f.gb",
-        protein = get_augustus_train_input_protein    
-    output: temp("gene_model/augustus/round{round}/redudant.gene.lst")
-    params:
-        maxid = "0.7"
+        protein = get_augustus_train_input_protein     
+    output:
+        temp("tmp/protein.fasta"),
+        temp("tmp/protein.fasta.phr"),
+        temp("tmp/protein.fasta.pin"),
+        temp("tmp/protein.fasta.psq")
+    shell:"""
+    perl -n -e '$_ =~/\/gene=\"(\S+)\"/ ;print "$1\n"' {input.genbank} |
+        seqkit grep -f - {input.protein}   > {output[0]} &&  
+        makeblastdb -in {output[0]} -dbtype prot 
+    """
+
+rule self_vs_selfblastp:
+    input:
+        "tmp/protein.fasta"
+    output:
+        temp("tmp/blastp.txt")
     threads: 20
     shell:"""
-    mkdir -p tmp &&
-    perl -n -e '$_ =~/\/gene=\"(\S+)\"/ ;print "$1\n"' {input.genbank} |
-      seqkit grep -f - {input.protein} > tmp/good_gene_protein.fasta &&
-      aa2nonred.pl --cores={threads} --maxid={params.maxid} tmp/good_gene_protein.fasta tmp/traingenes.good.nr.fa &&
-      seqkit seq -ni tmp/traingenes.good.nr.fa > {output}
+    blastp -outfmt 6 -query {input} -db {input} -num_threads {threads} > {output}
     """
+
+
+rule get_redudant_gene:
+    input: "tmp/blastp.txt"
+    output: temp("gene_model/augustus/round{round}/redudant.gene.lst")
+    params:
+        maxid = 0.7
+    run:
+        import pandas as pd
+        import numpy as np
+        df = pd.read_csv(input[0],sep="\t", header=None)
+        df = df.loc[df[0] != df[1], :]
+        df = df.loc[df[2] > params['maxid'],: ]
+        gene_list = np.unique(df[0])
+        with open(ouput[0], "w") as f:
+            for gene in gene_list:
+                f.writelines(gene+"\n")
 
 rule remove_redudant_gene:
     input:
@@ -220,7 +246,7 @@ rule downsample_gene:
         cp {input} {output}
     else
         randomSplit.pl {input} {params.threshold} &&
-        cp {input}.test {output} && rm -f {input}.train
+        mv {input}.test {output} && rm -f {input}.train
     fi
     """
 
@@ -238,13 +264,13 @@ rule auto_training:
     params:
         training_config_path = get_training_config_path,
         specie=specie_name,
-        optround='3',
+        optround=config.get("training_augustus_opt_round",1) ,
         flank_size=compute_flank_region_size
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
-    autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} 
-      --flanking_DNA={params.flank_size}
-      --useexisting 
+    autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} \
+      --flanking_DNA={params.flank_size} \
+      --useexisting \
       --optrounds={params.optround} 1> {output}
     """
 
@@ -258,8 +284,8 @@ rule augustus_model_train_status:
     run:
         import shutil
         import os
-        src_dir = os.path.join(params.training_config_path, 'species', params.specie) 
-        des_dir = os.path.join(params.augustus_config_path, 'species', params.specie) 
+        src_dir = os.path.join(params.training_config_path, 'species', str(params.specie)) 
+        des_dir = os.path.join(params.augustus_config_path, 'species', str(params.specie))
         if os.path.exists( des_dir ):
             shutil.rmtree( des_dir )
         shutil.copytree( src_dir, des_dir )
