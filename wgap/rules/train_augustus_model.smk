@@ -128,9 +128,10 @@ rule get_high_quality_gff:
     input: get_augustus_train_input
     output: "gene_model/augustus/round{round}/maker.gff"
     params:
-        script_dir = script_dir
+        script_dir = script_dir,
+        filter_opt = "-e 1 -d 0"
     shell:"""
-    python {params.script_dir}/maker_filter.py -e 1 -d 0 {input} > {output}
+    python {params.script_dir}/maker_filter.py {params.filter_opt} {input} > {output}
     """
 
 rule init_training_set:
@@ -144,7 +145,7 @@ rule init_training_set:
     gff2gbSmallDNA.pl {input.gff} {input.genome} {params.flank_size} {output}
     """
 
-# # first tranning
+# first tranning to remove training error
 rule first_etraining:
     input: 
         "gene_model/augustus/round{round}/training.gb",
@@ -199,7 +200,7 @@ rule create_aa_db:
         makeblastdb -in {output[0]} -dbtype prot 
     """
 
-rule self_vs_selfblastp:
+rule self_vs_self_blastp:
     input:
         "tmp/protein.fasta"
     output:
@@ -210,31 +211,36 @@ rule self_vs_selfblastp:
     """
 
 
-rule get_redudant_gene:
-    input: "tmp/blastp.txt"
-    output: temp("gene_model/augustus/round{round}/redudant.gene.lst")
+rule get_nonredudant_gene:
+    input: 
+        blast = "tmp/blastp.txt",
+        genbank = "gene_model/augustus/round{round}/training.f.gb",
+    output: temp("gene_model/augustus/round{round}/training.ff.gb")
     params:
-        maxid = 0.7
+        maxid = 80
     run:
         import pandas as pd
         import numpy as np
-        df = pd.read_csv(input[0],sep="\t", header=None)
+        import re
+        df = pd.read_csv(input["blast"],sep="\t", header=None)
         df = df.loc[df[0] != df[1], :]
         df = df.loc[df[2] > params['maxid'],: ]
-        gene_list = np.unique(df[0])
-        with open(ouput[0], "w") as f:
-            for gene in gene_list:
-                f.writelines(gene+"\n")
+        gene_list = set(df[0])
 
-rule remove_redudant_gene:
-    input:
-        "gene_model/augustus/round{round}/training.f.gb",
-        "gene_model/augustus/round{round}/redudant.gene.lst"
-    output: temp("gene_model/augustus/round{round}/training.ff.gb")
-    shell:"""
-    filterGenes.pl {input[1]} {input[0]} > {output} 
-    """
-
+        buffer_line = ""
+        gene_pattern = re.compile(r'\/gene=\"(\S+)\"')
+        new_gb = open(output[0], "w")
+        with open(input['genbank'], "r") as f:
+            for line in f.readlines():
+                if not line.startswith("//"):
+                    buffer_line += line
+                else:
+                    gene_id = re.findall(gene_pattern, buffer_line)[0]
+                    if gene_id not in gene_list:
+                        buffer_line += "//\n"
+                        new_gb.write(buffer_line)
+                    buffer_line = ""
+        new_gb.close()
 
 rule downsample_gene:
     input: "gene_model/augustus/round{round}/training.ff.gb"

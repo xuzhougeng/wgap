@@ -9,7 +9,7 @@ with open(join( this_directory, "README.md"), encoding="utf-8") as f:
 
 setuptools.setup(
     name="wgap", # Replace with your own username
-    version="0.6.2",
+    version="0.6.3",
     url="https://github.com/xuzhuogeng/wgap",
     project_urls={
         "Bug Tracker": "https://github.com/xuzhuogeng/wgap/issues"
