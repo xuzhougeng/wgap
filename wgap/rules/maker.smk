@@ -241,7 +241,7 @@ else:
         threads: 1
         log: "log/maker_round{round}.log"
         shell:"""
-        {threads} maker -quiet -base {params.dsname} {input.opts} {input.bopts} {input.exe} &> {log} 
+        maker -quiet -base {params.dsname} {input.opts} {input.bopts} {input.exe} &> {log} 
         """
 
 # maker_base.gff

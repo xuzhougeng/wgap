@@ -27,8 +27,6 @@ def get_opt():
             help = "The min length of the protein sequence produced by the mRNA", required = False)
     group.add_argument("-d", "--AED", type = float, default = 1, required = False,
             help = "Max AED  to allow, default is 1")
-    group.add_argument("-k", "--keep", type = int, default = 1000, required = False,
-            help = "maximum gene number for training augustus")
     group.add_argument("-i", "--geneid", required = False,
             help = "filter by given gene list")
     group.add_argument("gff", help = "input gff file")

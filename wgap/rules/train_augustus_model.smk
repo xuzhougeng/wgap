@@ -170,7 +170,7 @@ rule get_bad_gene_list:
         for line in fi:
             pattern = re.compile("n sequence (\S+):.*")
             record = re.search(pattern, line).group(1)
-            fo.write(record)
+            fo.write(record + "\n")
         fi.close()
         fo.close()
 
