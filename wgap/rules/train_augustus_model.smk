@@ -258,7 +258,7 @@ rule auto_training:
         specie=specie_name,
         optround=config.get("training_augustus_opt_round",1) ,
         flank_size=compute_flank_region_size,
-        auto_aug_opts = config("training_augustus_opts", "")
+        auto_aug_opts = config.get("training_augustus_opts", "")
     threads: 8
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
