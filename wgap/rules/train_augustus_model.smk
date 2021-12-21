@@ -185,47 +185,34 @@ rule filter_bad_gene:
     filterGenes.pl {input[1]} {input[0]} 1> {output}
     """
 
-rule create_aa_db:
+rule self_vs_self_blastp:
     input: 
         genbank = "gene_model/augustus/round{round}/training.f.gb",
         protein = get_augustus_train_input_protein     
     output:
-        temp("tmp/protein.fasta"),
-        temp("tmp/protein.fasta.phr"),
-        temp("tmp/protein.fasta.pin"),
-        temp("tmp/protein.fasta.psq")
-    shell:"""
-    perl -n -e '$_ =~/\/gene=\"(\S+)\"/ ;print "$1\n"' {input.genbank} |
-        seqkit grep -f - {input.protein}   > {output[0]} &&  
-        makeblastdb -in {output[0]} -dbtype prot 
-    """
-
-rule self_vs_self_blastp:
-    input:
-        "tmp/protein.fasta"
-    output:
-        temp("tmp/blastp.txt")
+        orig=temp("gene_model/augustus/round{round}/training.f.aa.fasta"),
+        flt=temp("gene_model/augustus/round{round}/non_reduant_gene.fasta")
+    params:
+        maxid = 0.8
     threads: 20
     shell:"""
-    blastp -outfmt 6 -query {input} -db {input} -num_threads {threads} > {output}
+    perl -n -e '$_ =~/\/gene=\"(\S+)\"/ ;print "$1\n"' {input.genbank} |
+        seqkit grep -f - {input.protein} > {output.orig} &&  
+        aa2nonred.pl --maxid={params.maxid} --diamond --cores={threads} {output.orig} {output.flt}
     """
-
 
 rule get_nonredudant_gene:
     input: 
-        blast = "tmp/blastp.txt",
+        aa = "gene_model/augustus/round{round}/non_reduant_gene.fasta",
         genbank = "gene_model/augustus/round{round}/training.f.gb",
-    output: temp("gene_model/augustus/round{round}/training.ff.gb")
-    params:
-        maxid = 80
+    output: temp("gene_model/augustus/round{round}/training.ff.gb")      
     run:
-        import pandas as pd
-        import numpy as np
         import re
-        df = pd.read_csv(input["blast"],sep="\t", header=None)
-        df = df.loc[df[0] != df[1], :]
-        df = df.loc[df[2] > params['maxid'],: ]
-        gene_list = set(df[0])
+        gene_list = set()
+        with open(input['aa'], "w") as f:
+            for line in f.readlines():
+                if line.startswith(">"):
+                    gene_list.add( line[1:] )
 
         buffer_line = ""
         gene_pattern = re.compile(r'\/gene=\"(\S+)\"')
@@ -256,7 +243,6 @@ rule downsample_gene:
     fi
     """
 
-
 rule get_final_train_geneset:
     input: "gene_model/augustus/round{round}/training.fff.gb"
     output: "gene_model/augustus/round{round}/train.gb"
@@ -271,13 +257,16 @@ rule auto_training:
         training_config_path = get_training_config_path,
         specie=specie_name,
         optround=config.get("training_augustus_opt_round",1) ,
-        flank_size=compute_flank_region_size
+        flank_size=compute_flank_region_size,
+        auto_aug_opts = config("training_augustus_opts", "")
+    threads: 8
     shell:"""
     export AUGUSTUS_CONFIG_PATH={params.training_config_path} && 
     autoAugTrain.pl -v -v -v --trainingset={input} --species={params.specie} \
       --flanking_DNA={params.flank_size} \
       --useexisting \
-      --optrounds={params.optround} 1> {output}
+      --optrounds={params.optround} \
+      --cpus={threads} 1> {output}
     """
 
 rule augustus_model_train_status:

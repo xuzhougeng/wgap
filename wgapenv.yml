@@ -9,7 +9,7 @@ dependencies:
   - click=7
   - biopython=1.78
   - bcbio-gff
-  - augustus>=3.3.2
+  - augustus>=3.4.0
   - maker=3.01.03
   - stringtie>=2.1.7
   - star
@@ -17,5 +17,6 @@ dependencies:
   - samtools
   - fastp
   - gffread
+  - pblat
 
 #  - pandas<1 # needs to be < 0.24 otherwise series are printed with header

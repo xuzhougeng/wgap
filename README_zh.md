@@ -19,8 +19,25 @@ WGAP能够自动处理多种场景
 - 已有模型，基于转录组和蛋白序列进行模型优化然后进行基因预测
 - 已有模型和蛋白数据，不需要预测，直接输出结果
 
-
 ## 安装
+
+WGAP的运行依赖于以下软件
+
+- python=3.7
+- pandas
+- snakemake>=5.9.1
+- click=7
+- biopython=1.78
+- bcbio-gff
+- augustus>=3.4.0
+- maker=3.01.03
+- stringtie>=2.1.7
+- star
+- minimap2
+- samtools
+- fastp
+- gffread
+- pblat>=2.5
 
 手动安装
 
