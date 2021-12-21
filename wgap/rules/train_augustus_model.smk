@@ -209,7 +209,7 @@ rule get_nonredudant_gene:
     run:
         import re
         gene_list = set()
-        with open(input['aa'], "w") as f:
+        with open(input['aa'], "r") as f:
             for line in f.readlines():
                 if line.startswith(">"):
                     gene_list.add( line[1:] )
@@ -235,9 +235,10 @@ rule downsample_gene:
     params:
         threshold = config.get("training_augustus_gene_num", 1000)
     shell:"""
-    if [[ {params.threshold} -eq 0 ]]; then
+    gene_num=$(grep -c "LOCUS" {input})
+    if [ {params.threshold} -eq 0 ] || [ $gene_num -lt {params.threshold} ]; then
         cp {input} {output}
-    else
+    else        
         randomSplit.pl {input} {params.threshold} &&
         mv {input}.test {output} && rm -f {input}.train
     fi
