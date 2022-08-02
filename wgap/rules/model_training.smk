@@ -1,3 +1,6 @@
+# prepare gene model
+
+
 
 # model training module
 include: "train_augustus_model.smk"

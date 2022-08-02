@@ -170,7 +170,8 @@ rule update_maker_ctl:
     python {params.script_dir}/maker_ctl_updator.py {input.ctl} {output} {params.opts_settings}
     """
 
-# annotation step
+
+# Sub-Module: Annotation
 if MPI:
     rule run_maker_annotation:
         input: 
@@ -200,7 +201,7 @@ else:
         maker -quiet -base {params.dsname} {input.opts} {input.bopts} {input.exe} &> {log} 
         """
 
-# train step: maker_loop: maker_round{2...n}.gff
+# Sub-Module: Training, maker_loop: maker_round{2...n}.gff
 rule maker_loop_output:
     input: "status/maker_round{round}.done"
     params:

@@ -1,4 +1,4 @@
-# assembly the RNA-seq data
+# assembly the rna-seq data
 import os
 
 # prepare the input file 

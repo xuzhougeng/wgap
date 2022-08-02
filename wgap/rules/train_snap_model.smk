@@ -61,7 +61,7 @@ rule snap_fathom_forge:
     """
 
 rule snap_hmm_assemble:
-    input: directory("gene_model/snap/round{round}/params")   
+    input: "gene_model/snap/round{round}/params" 
     params:
         species = specie_name
     output: "gene_model/snap_round{round}.hmm"

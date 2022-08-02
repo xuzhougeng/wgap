@@ -53,7 +53,7 @@ rule pb_map:
     """
 
 
-rule pb_ont:
+rule ont_map:
     input:
         index = rules.build_mm2_index.output,
         fastq = rules.tgs_pre_processing.output
@@ -77,7 +77,7 @@ rule pb_stringtie_assembly:
     params:
         opts = config.get("tgs_stringtie_assembly_opts", "")
     threads: config.get('stringtie_assembly_opts', 10)
-    shell: "stringtie {params.opts} -p {threads} {input} -o {output}"
+    shell: "stringtie {params.opts} -L -p {threads} {input} -o {output}"
 
 rule pb_stringtie_merge:
     input: get_sample_of_pb
@@ -93,7 +93,7 @@ rule ont_stringtie_assembly:
     params:
         opts = config.get("tgs_stringtie_assembly_opts", "")
     threads: config.get('stringtie_assembly_opts', 10)
-    shell: "stringtie {params.opts} -p {threads} {input} -o {output}"
+    shell: "stringtie {params.opts} -L -p {threads} {input} -o {output}"
 
 rule ont_stringtie_merge:
     input: get_sample_of_ont

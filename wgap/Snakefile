@@ -36,7 +36,7 @@ if transcript_assemble:
     if config['sample'] is None or not os.path.isfile(config['sample']):
         print("RNA-seq sample file is not existed", file=sys.stderr)
         sys.exit(1)
-    sampleTable = pd.read_csv(config['sample'], index_col=0,sep=",")
+    sampleTable = pd.read_csv(config['sample'], index_col=0,sep=",", skipinitialspace=True)
     all_gff3 = set()
     for row in sampleTable.iterrows():
         tissue = row[1]['tissue']
@@ -49,7 +49,7 @@ if transcript_assemble:
 
     # tgs
     all_gff3 = list(all_gff3)
-    print( "RNA-seq:\n" +  "\n".join(all_gff3))
+    #print( "RNA-seq:\n" +  "\n".join(all_gff3))
 
 
 # training the model
@@ -82,7 +82,7 @@ localrules: all
 rule all:
     input: "maker.gff"
 
-# sub rules
+# Sub-rule
 rule transcript_assembly:
     input: all_gff3
     output: touch("status/transcript_assemble.done")
@@ -96,7 +96,7 @@ rule gene_model_training:
 include: "rules/ngs_transcript_assembly.smk"
 include: "rules/tgs_transcript_assembly.smk"
 include: "rules/model_training.smk"
-include: "rules/maker.smk"
+include: "rules/integration.smk"
 
 onsuccess:
     print("WGAP finished")

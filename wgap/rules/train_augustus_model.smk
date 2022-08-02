@@ -129,7 +129,7 @@ rule get_high_quality_gff:
     output: "gene_model/augustus/round{round}/maker.gff"
     params:
         script_dir = script_dir,
-        filter_opt = "-e 1 -d 0"
+        filter_opt = "-e 1 -d 0 "
     shell:"""
     python {params.script_dir}/maker_filter.py {params.filter_opt} {input} > {output}
     """
