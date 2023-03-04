@@ -1,9 +1,8 @@
-# reference fasta path
-genome:
-specie_name:
+genome: 
+specie_name: 
 
 # protein evidence
-protein:
+protein: 
 
 # RNA-seq evidence
 transcript_assemble: True
@@ -13,18 +12,17 @@ transcript_fasta:
 
 # modeling training
 training_model: True
-training_snap_round: 123
-training_augustus_round: 3
-# downsample the gene number for augustus training, set 0 to use all gene
+training_snap_round: 0
+training_augustus_round: 1
 training_augustus_opt_round: 1
 training_augustus_gene_num: 1000
 training_augustus_opts: ""
 
 # if training_model is False, existed model must be set
 ##path to snap hmm file
-snaphmm: 
+snaphmm:
 ## "augustus species name
-augustus_species: 
+augustus_species:
 
 # MAKER setting
 parallel: True
@@ -32,9 +30,10 @@ parallel: True
 ## MAKER setting of annotation
 prediciton:
   opts:
-    - model_org=arabidopsis
-    - min_protein=100
-    - always_complete=1
+    - model_org=
+    - rmlib=TElib.fa
+    - min_protein=10
+    - always_complete=0
 
 ## MAKER settings of training
 round1:
@@ -45,32 +44,12 @@ round1:
     - pid_blastx=0.5
     - depth_blastx=2
   opts:
-    - model_org=arabidopsis
+    - model_org=
+    - rmlib=TElib.fa
     - min_protein=100
     - always_complete=0
 
-round2:
-  bopts:
-    - pcov_blastn=0.9
-    - depth_blastn=2
-    - pcov_blastx=0.6
-    - pid_blastx=0.5
-    - depth_blastx=2
-  opts:
-    - model_org=arabidopsis
-
-round3:
-  bopts:
-    - pcov_blastn=0.9
-    - depth_blastn=2
-    - pcov_blastx=0.6
-    - pid_blastx=0.5
-    - depth_blastx=2
-  opts:
-    - model_org=arabidopsis
-
-
-# minimap2 paramater 
+# minimap2 paramater
 mm2_idx_opts: ""
 mm2_idx_threads: 10
 mm2_map_threads: 20

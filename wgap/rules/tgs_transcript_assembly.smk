@@ -47,7 +47,7 @@ rule pb_map:
     threads: config.get("mm2_map_threads", 20)
     shell:"""
     minimap2 -t {threads} {params.opts} -ax splice:hq -uf {input.index} {input.fastq} |  \
-      samtools view -q {x.min_mq} -F 2304 -Sb - |\
+      samtools view -q {params.min_mq} -F 2304 -Sb - |\
       samtools sort -@ {threads} -o {output.bam} - && \
       samtools index {output.bam}  
     """

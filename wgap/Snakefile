@@ -24,6 +24,7 @@ sys.path.append( script_dir )
 reference=config['genome']
 specie_name = config.get('specie_name', "maker")
 protein = config.get("protein","")
+te_lib = config.get("")
 MPI = config.get('parallel', False)
 
 ## assemble the transcript

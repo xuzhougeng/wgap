@@ -9,6 +9,7 @@ def get_ngs_files_from_sampleTable(wildcards):
     #print(samples)
     return samples
 
+
 def get_sample_of_ngs(wildcards):
     tissue = wildcards.tissue
     samples = sampleTable.loc[(sampleTable['tissue'] == tissue) & (sampleTable['technology'] == "ngs" ) ].index.to_list()
