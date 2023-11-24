@@ -1,8 +1,12 @@
 import unittest
 
-from wgap.scripts.gene_annotation_adapter import Orf
+from wgap.scripts.gene_annotation_adapter import Orf, Gene
 
-from wgap.scripts.gene_annotation_adapter import repeat_masker_loader
+from wgap.scripts.gene_annotation_adapter import read_fasta
+
+from wgap.scripts.gene_annotation_adapter import gff3_loader
+
+
 
 
 cds = "ATGGAGCCGCCACAGCATCAGCATCATCATCATCAAGCCGACCAAGAAAGCGGCAACAACAACAACAACAAGTCCGGCTCTGGTGGTTACACGTGTCGCCAGACCAGCACGAGGTGGAC\
@@ -25,8 +29,23 @@ class GeneAnnotationAdapterTest(unittest.TestCase):
         orf = Orf.find_orf(cds)
         self.assertEqual(orf.cds, cds)
 
-    def test_repeat_masker_loader(self):
-        
+    def test_gff3_loader(self):
+        gff = "tests/data/test.gff3"
+        ref = "tests/data/test.fa"
+
+        fasta_dict = read_fasta(ref)
+
+        gene_dict = gff3_loader(gff, fasta_dict)
+        # get one of dict 
+        # gene_names = gene_dict.keys()
+        # test class type
+        self.assertIsInstance(gene_dict, dict)
+
+        gene = gene_dict['AT1G01040']
+
+        # test class type
+        self.assertIsInstance(gene, Gene)
+
 
 
 if __name__ == '__main__':

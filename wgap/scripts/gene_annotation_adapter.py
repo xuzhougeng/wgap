@@ -662,9 +662,6 @@ def gff3_loader(gff3_file: str, fasta_dict: Optional[SeqRecordDict] = None) -> D
     
     return gene_dict
 
-
-
-
 def gene_to_gff3(gene: Gene, source: str = 'wgap') -> str:
     gff3_lines = []
 

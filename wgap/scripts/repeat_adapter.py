@@ -48,34 +48,41 @@ class Repeat:
     __str__ = __repr__
     
 
-def repeat_masker_loader(data: List[str]) -> List[Repeat]:
+def repeat_masker_loader(repeat_file : str, skip: int = 3) -> List[Repeat]:
     """
     Processes a list of strings representing the output from RepeatMasker.
 
     Args:
-        data (List[str]): The RepeatMasker output lines.
-
+        repeat_file (str): A list of strings representing the output from RepeatMasker.
     Returns:
         List[Repeat]: A list of Repeat objects parsed from the output.
     """
     
     repeats = []
-    for line in data:
+
+    # open file and skip header
+    repeat_file_handle = open(repeat_file, 'r')
+    for i in range(skip):
+        next(repeat_file_handle)
+    
+
+    for line in repeat_file_handle:
         # Skip header and empty lines
-        if line.startswith('   SW') or line.strip() == '':
+        line = line.strip()
+        if line.startswith('SW')  or line == '':
             continue
 
         # Extract fields from the line
         fields = line.split()
 
-        # Parse fields and create Repeat object
-        repeat_id = fields[15]
+        # Parse fields and create Repeat object 
         chrom = fields[4]
         start = int(fields[5])
         end = int(fields[6])
-        left = fields[7]
+        repeat_id = f"{chrom}:{start}-{end}"
+        # left = fields[7]
         strand = '+' if fields[8] == '+' else '-'
-        repeat_sequence = fields[9]
+        # repeat_sequence = fields[9]
         repeat_class_family = fields[10].split('/')
         repeat_class = repeat_class_family[0]
         repeat_family = repeat_class_family[1] if len(repeat_class_family) > 1 else None
@@ -85,20 +92,8 @@ def repeat_masker_loader(data: List[str]) -> List[Repeat]:
         repeat = Repeat(repeat_id, chrom, start, end, strand, repeat_class, repeat_family, score, sequence)
         repeats.append(repeat)
 
+    # close file and return repeats
+    repeat_file_handle.close()
+
     return repeats
 
-# Sample data
-data = [
-    '   SW   perc perc perc  query         position in query           matching             repeat                position in repeat\n',
-    'score   div. del. ins.  sequence      begin   end        (left)   repeat               class/family      begin   end    (left)     ID\n',
-    '\n',
-    '   14   13.4  2.9  2.9  ptg000006l_1    10305   10339 (1870736) + (AATT)n              Simple_repeat           1     35     (0)     1  \n',
-    '   25   15.2  2.0  0.0  ptg000006l_1    10953   11003 (1870072) + (AGAATC)n            Simple_repeat           1     52     (0)     2  \n'
-]
-
-# Process the data
-repeats = repeat_masker_loader(data)
-
-# Display the results
-for repeat in repeats:
-    print(repeat)
