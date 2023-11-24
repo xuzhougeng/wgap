@@ -8,3 +8,8 @@ Citation: [![DOI](https://zenodo.org/badge/363893963.svg)](https://zenodo.org/ba
 English version is not available, please visit [Chinese version](README_zh.md)
 
 
+Run Test
+
+```bash
+python -m unittest tests/test_orf_finder.py 
+```

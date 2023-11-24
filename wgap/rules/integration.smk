@@ -1,3 +1,6 @@
+# deprecated
+## reason: we don't need maker to get the gff3 file
+
 # split the maker.gff base on the 2nd column
 rule generate_output:
     input: "maker/maker_annotation.gff"

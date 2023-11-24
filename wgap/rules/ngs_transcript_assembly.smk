@@ -141,7 +141,10 @@ rule ngs_ss_fr_stringtie_merge:
         label = lambda wildcards: "{tissue}_fr".format(tissue=wildcards.tissue)
     shell: "stringtie -l {params.label} --merge -o {output} {input}"
 
-# generate the output
+
+
+
+# deprecated
 rule prepare_ngs_maker_gff_input:
     input: "rna-seq/ngs/04-final/{tissue}_{tech}.gtf"
     output: "rna-seq/ngs/04-final/{tissue}_{tech}.gff3"
