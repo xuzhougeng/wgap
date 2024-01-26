@@ -1,97 +1,8 @@
 from typing import Optional, Dict, List
-from Bio import SeqIO
+from wgap.scripts.seq_utils import reverse_complement, translate_cds, SeqRecordDict
 
-SeqRecordDict = Dict[str, str]
-
-def read_fasta(fasta_file: str) -> SeqRecordDict:
-    fasta_dict = {}
-    for seq_record in SeqIO.parse(fasta_file, "fasta"):
-        fasta_dict[seq_record.id] = str(seq_record.seq)
-    return fasta_dict
-
-def get_attributes(attributes: str) -> Dict[str, str]:
-    """
-    Parses the attributes column of a GTF file and returns a dictionary of attributes.
-
-    Args:
-        attributes (str): The attributes column of a GTF file.
-
-    Returns:
-        Dict[str, str]: A dictionary of attributes.
-    """
-    attributes_dict = {}
-    for attribute in attributes.split(";"):
-        if attribute.strip() == "":
-            continue
-
-        key, value = attribute.strip().split(" ")
-        attributes_dict[key] = value.replace('"', '')
-    return attributes_dict
-
-## helpul functions
-def reverse_complement(sequence: str) -> str:
-    """
-    Returns the reverse complement of a sequence.
-
-    Args:
-        sequence (str): The sequence to be reverse complemented.
-
-    Returns:
-        str: The reverse complement of the sequence.
-    """
-    complement = {"A": "T", "T": "A", "C": "G", "G": "C",
-                  "a": "t", "t": "a", "c": "g", "g": "c"}
-    
-    try:
-        return "".join([complement[base] for base in sequence[::-1]])
-    except KeyError:
-        print(f"Error: Invalid base in sequence: {sequence}")
-
-# Default codon table (Standard Genetic Code)
-STANDARD_CODON_TABLE = {
-    "ATA":"I", "ATC":"I", "ATT":"I", "ATG":"M",
-    "ACA":"T", "ACC":"T", "ACG":"T", "ACT":"T",
-    "AAC":"N", "AAT":"N", "AAA":"K", "AAG":"K",
-    "AGC":"S", "AGT":"S", "AGA":"R", "AGG":"R",
-    "CTA":"L", "CTC":"L", "CTG":"L", "CTT":"L",
-    "CCA":"P", "CCC":"P", "CCG":"P", "CCT":"P",
-    "CAC":"H", "CAT":"H", "CAA":"Q", "CAG":"Q",
-    "CGA":"R", "CGC":"R", "CGG":"R", "CGT":"R",
-    "GTA":"V", "GTC":"V", "GTG":"V", "GTT":"V",
-    "GCA":"A", "GCC":"A", "GCG":"A", "GCT":"A",
-    "GAC":"D", "GAT":"D", "GAA":"E", "GAG":"E",
-    "GGA":"G", "GGC":"G", "GGG":"G", "GGT":"G",
-    "TCA":"S", "TCC":"S", "TCG":"S", "TCT":"S",
-    "TTC":"F", "TTT":"F", "TTA":"L", "TTG":"L",
-    "TAC":"Y", "TAT":"Y", "TAA":"*", "TAG":"*",
-    "TGC":"C", "TGT":"C", "TGA":"*", "TGG":"W",
-}
-
-def translate_cds(dna_sequence, codon_table: Dict[str, str] = STANDARD_CODON_TABLE ) -> str:
-    """
-    Translate a DNA sequence into a protein sequence using a given codon table.
-
-    Args:
-    dna_sequence (str): The DNA sequence to be translated.
-    codon_table (dict, optional): A dictionary representing the codon table. 
-                                  If None, a default codon table is used.
-
-    Returns:
-    str: The translated protein sequence.
-    """
-    # Ensure the DNA sequence length is a multiple of 3
-    if len(dna_sequence) % 3 != 0:
-        raise ValueError("DNA sequence length is not a multiple of 3.")
-    
-    protein_sequence = ""
-    # Translate each codon into an amino acid
-    for i in range(0, len(dna_sequence), 3):
-        codon = dna_sequence[i:i+3]
-        protein_sequence += codon_table.get(codon, "?")  # '?' for unknown codons
-
-    return protein_sequence
-
-# Exon -> Transcript -> Gene
+# 基因结构: gene->(mRNA->(exon->cds(?))(+) )(+) 
+# 一个基因可以有多个mRNA, 一个mRNA可以有多个exon, 一个外显子最多只有一个cds, 但是如果完全是非翻译的(UTR), 则可能没有cds片段
 
 class Exon:
     """
@@ -120,9 +31,9 @@ class Exon:
         self.start = start
         self.end = end
         self.strand = strand
-        self.sequence = sequence
+        self.sequence = sequence or ""
 
-        self.size = len(self.sequence)
+        self.size = len(self.sequence) if self.sequence else 0
 
     def __repr__(self):
         return f"{self.id}:{self.chrom}\t{self.start}\t{self.end}\t{self.strand}"
@@ -158,7 +69,7 @@ class CDS:
         self.start = start
         self.end = end
         self.strand = strand
-        self.sequence = sequence
+        self.sequence = sequence or ""
         self._phase = phase
 
     def __repr__(self):
@@ -166,12 +77,12 @@ class CDS:
     
     __str__ = __repr__
 
-    def set_phase(self, phase):
-        self._phase = phase
-
     @property
     def phase(self):
         return self._phase
+    
+    def set_phase(self, phase):
+        self._phase = phase
 
 class Orf:
     """
@@ -183,25 +94,25 @@ class Orf:
         sequence (str): The sequence of the ORF, 5'->3'.
     """
 
-    def __init__(self, start: Optional[int] = None, end: Optional[int] = None, cds:Optional[str] = None, pep:Optional[str] = None):
+    def __init__(self, start: Optional[int] = None, end: Optional[int] = None, sequence:Optional[str] = None, pep:Optional[str] = None):
         self.start = start
         self.end = end
-        self.cds = cds
+        self.sequence = sequence or ""
         self._pep = pep
     
     @property
     def pep(self):
         if self._pep is None:
-            self._pep = translate_cds(self.cds)
+            self._pep = translate_cds(self.sequence)
         return self._pep
     
     def __str__(self):
-        return f"{self.cds}"
+        return f"{self.sequence}"
     
     __repr__ = __str__
 
     def __len__(self):
-        return len(self.cds)
+        return len(self.sequence)
 
     @classmethod
     def find_orf(cls, seq : str) :
@@ -244,7 +155,8 @@ class Transcript:
 
     def __init__(self, transcript_id: Optional[str] = None, 
                  chrom: Optional[str] = None,
-                 start: Optional[int] = None, end: Optional[int] = None,
+                 start: Optional[int] = None,
+                 end: Optional[int] = None,
                  strand: Optional[str] = None,
                  exon_list: Optional[List[Exon]] = None):
         """
@@ -263,12 +175,14 @@ class Transcript:
         self.start = start
         self.end = end
         self.strand = strand
-        self._exons = exon_list
-        self._sequence : str = None
-        self._exon_num : int = 0
+
+        self._sequence : str = None   
+        self._exons = exon_list or []
+        self._exon_num : int = len(self._exons)
         
         self._orf = None
         self._cds : List[CDS] = None
+        
 
     def __repr__(self):
         """
@@ -303,12 +217,8 @@ class Transcript:
         Args:
             exon (Exon): The exon to be added.
         """
-        if self._exons is None:
-            self._exons = [ exon ]
-            self._exon_num = 1
-        else:
-            self._exons.append(exon)
-            self._exon_num += 1
+        self._exons.append(exon)
+        self._exon_num += 1
 
     @property
     def exon_num(self):
@@ -324,6 +234,9 @@ class Transcript:
         """
         Sets the sequence of the transcript by concatenating the sequences of its exons.
         """
+        if not self._exons:
+            self._sequence = ""
+            return
         sorted_exons = sorted(self._exons, key=lambda exon: exon.start)
         sequence = "".join([exon.sequence for exon in sorted_exons ])
 
@@ -356,10 +269,11 @@ class Transcript:
             self._orf = Orf.find_orf(self.sequence)
         return self._orf
     
+    
     @property
     def cds(self):
         """
-        Returns the CDS of the transcript.
+        Returns the CDS of the transcript
 
         Returns:
             CDS: The CDS of the transcript.
@@ -371,39 +285,42 @@ class Transcript:
 
         orf_start = self.orf.start
         orf_end = self.orf.end
+        # reverse the orf start and end if the transcript is on the negative strand
         if self.strand == "-":
             orf_start = len(self.sequence) - self.orf.end
             orf_end = len(self.sequence) - self.orf.start
+    
+        sorted_exons : List[Exon] = sorted(self._exons, key=lambda exon: exon.start)
 
-        sorted_exon : List[Exon] = sorted(self._exons, key=lambda exon: exon.start)
-        exon_relative_start = 0
-        exon_relative_end = 0
-        for exon in sorted_exon:
-            exon_relative_start = exon_relative_end
-            exon_relative_end = exon_relative_start +  exon.size
+        current_position = 0  # Position within the transcript
+       
+        for exon in sorted_exons:
 
-            # compare each exon relative position with orf start and end
-            if orf_start >= exon_relative_start and orf_start <= exon_relative_end:
-                # orf start is in this exon
-                cds_start = exon.start + orf_start
-                cds_end = exon.end
-                cds_sequence = exon.sequence[cds_start-exon.start:]
-                cds = CDS(f"cds_{self.id}", self.chrom, cds_start, cds_end, self.strand, cds_sequence)
+            if current_position <= orf_start < current_position + exon.size:
+                start_position = max(exon.start, exon.start + orf_start - current_position)
+                end_position = min(exon.end, exon.start + orf_end - current_position)
+                
+                cds_sequence = exon.sequence[start_position-exon.start:end_position-exon.start]
+
+                cds = CDS(f"cds_{self.id}", self.chrom, start_position, end_position, self.strand, cds_sequence)
                 cds_list.append(cds)
-            elif orf_end >= exon_relative_start and orf_end <= exon_relative_end:
-                # orf end is in this exon
-                cds_start = exon.start
-                cds_end = exon.start + (  orf_end - exon_relative_start )
-                cds_sequence = exon.sequence[:cds_end-exon.start]
-                cds = CDS(f"cds_{self.id}", self.chrom, cds_start, cds_end, self.strand, cds_sequence)
+
+                if orf_end <= current_position + exon.size:
+                    break
+            elif current_position < orf_end and orf_start < current_position:
+                start_position = exon.start
+                end_position = min(exon.end, exon.start + orf_end - current_position)
+                
+                cds_sequence = exon.sequence[start_position-exon.start:end_position-exon.start]
+                
+                cds = CDS(f"cds_{self.id}", self.chrom, start_position, end_position, self.strand, cds_sequence)
                 cds_list.append(cds)
-            elif orf_start <= exon_relative_start and orf_end >= exon_relative_end:
-                # orf is in this exon
-                cds_start = exon.start
-                cds_end = exon.end
-                cds_sequence = exon.sequence
-                cds = CDS(f"cds_{self.id}", self.chrom, cds_start, cds_end, self.strand, cds_sequence)
-                cds_list.append(cds)
+
+                if orf_end <= current_position + exon.size:
+                    break
+            current_position += exon.size
+
+        # Filter out any CDS segments that may be outside of the ORF
         
         # set the phase of each cds
         cds_start = 0
@@ -416,6 +333,18 @@ class Transcript:
         
         self._cds = cds_list
         return self._cds
+    
+    def add_cds(self, cds: CDS):
+        """
+        Adds a CDS to the transcript.
+
+        Args:
+            cds (CDS): The CDS to be added.
+        """
+        if self._cds is None:
+            self._cds = [ cds ]
+        else:
+            self._cds.append(cds)
 
 class Gene:
     """
@@ -556,7 +485,25 @@ class Gene:
     def tx_num(self):
         return self._tx_num
 
-# Loaders
+def get_attributes(attributes: str) -> Dict[str, str]:
+    """
+    Parses the attributes column of a GTF file and returns a dictionary of attributes.
+
+    Args:
+        attributes (str): The attributes column of a GTF file.
+
+    Returns:
+        Dict[str, str]: A dictionary of attributes.
+    """
+    attributes_dict = {}
+    for attribute in attributes.split(";"):
+        if attribute.strip() == "":
+            continue
+
+        key, value = attribute.strip().split(" ")
+        attributes_dict[key] = value.replace('"', '')
+    return attributes_dict
+
 def stringtie_loader(stringtie_gtf: str, fasta_dict: Optional[SeqRecordDict] = None) -> Dict[str, Gene]:
     
     gene_dict : Dict[str, Gene] = {} 
@@ -612,12 +559,76 @@ def stringtie_loader(stringtie_gtf: str, fasta_dict: Optional[SeqRecordDict] = N
     
     return gene_dict
 
+def augustus_loader(augustus_gtf: str, fasta_dict: Optional[SeqRecordDict] = None) -> Dict[str, Gene]:
+
+    gene_dict: Dict[str, Gene] = {}
+    cds_dict: Dict[str, CDS] = {}
+
+    file_handle = open(augustus_gtf)
+    for line in file_handle:
+        if line.startswith("#"):
+            continue
+        line = line.strip()
+        
+        parts = line.split("\t")
+        if len(parts) != 9:
+            continue  # Ignore malformed lines
+       
+        chrom, _, feature_type, start, end, _, strand, phase, attributes = parts
+        
+        if len(chrom.split("_")) > 1:
+            chrom, sub_start, _ = chrom.split("_")
+            # gff is 1-based, convert to 0-based
+            start, end = int(start) - 1 + int(sub_start), int(end) + int(sub_start)
+        else:
+            # gff is 1-based, convert to 0-based
+            start, end = int(start) - 1, int(end)
+
+        if feature_type == "gene":
+            gene_id = attributes
+            new_gene_id = f"{chrom}_{start}_{end}_{gene_id}"
+            gene = Gene(gene_id=new_gene_id, chrom=chrom, start=start, end=end, strand=strand)
+            # add gene to gene_dict
+            if gene_id not in gene_dict:
+                gene_dict[gene_id] = gene
+
+        elif feature_type == "transcript":
+            tx_id = f"{gene.id}_{attributes}"
+            gene_id = attributes.split(".")[0]
+            transcript = Transcript(transcript_id=tx_id, chrom=chrom, start=start, end=end, strand=strand)
+            gene = gene_dict[gene_id]
+            gene.add_transcript(transcript)
+
+        elif feature_type == "CDS":
+            cds_id = f"CDS_{chrom}_{start}_{end}"
+            #sequence = fasta_dict[chrom][start:end]  # Get the exon sequence from the genome
+            cds = CDS(cds_id=cds_id, chrom=chrom, start=start, end=end, strand=strand, phase=int(phase))
+            if fasta_dict is not None:
+                cds.sequence = fasta_dict[chrom][start:end]
+            if cds_id not in cds_dict:
+                cds_dict[cds_id] = cds
+
+            tx_id = get_attributes(attributes)["transcript_id"]
+            gene_id = tx_id.split(".")[0]
+            gene = gene_dict[gene_id]
+
+            tx_key =f"{gene.id}_{tx_id}"
+            transcript = gene.get_transcript(tx_key)
+            
+            if transcript is not None:
+                transcript.add_cds(cds)
+
+    file_handle.close()
+
+    return gene_dict
+
 def gff3_loader(gff3_file: str, fasta_dict: Optional[SeqRecordDict] = None) -> Dict[str, Gene]:
     
     gene_dict : Dict[str, Gene] = {} 
     exon_dict : Dict[str, Exon] = {}
     
-    for line in open(gff3_file):
+    file_handle = open(gff3_file)
+    for line in file_handle:
         if line.startswith("#"):
             continue
         line = line.strip()
@@ -659,6 +670,7 @@ def gff3_loader(gff3_file: str, fasta_dict: Optional[SeqRecordDict] = None) -> D
             transcript = gene_dict[gene_id].get_transcript(transcript_id)
             if transcript is not None:
                 transcript.add_exon(exon)
+    file_handle.close()
     
     return gene_dict
 
@@ -677,100 +689,17 @@ def gene_to_gff3(gene: Gene, source: str = 'wgap') -> str:
         )
 
         # Exon lines
-        for exon in transcript.exons:
-            gff3_lines.append(
-                f"{gene.chrom}\t{source}\texon\t{exon.start+ 1}\t{exon.end}\t.\t{exon.strand}\t.\tID={exon.id};Parent={transcript.id}"
-            )
+        if len(transcript.exons) > 0:
+            for exon in transcript.exons:
+                gff3_lines.append(
+                    f"{gene.chrom}\t{source}\texon\t{exon.start+ 1}\t{exon.end}\t.\t{exon.strand}\t.\tID={exon.id};Parent={transcript.id}"
+                )
 
         # CDS lines
-        for cds in transcript.cds:
-            gff3_lines.append(
-                f"{gene.chrom}\t{source}\tCDS\t{cds.start+ 1}\t{cds.end}\t.\t{cds.strand}\t{cds.phase}\tID={cds.id};Parent={transcript.id}"
-            )
+        if len(transcript.cds) > 0:
+            for cds in transcript.cds:
+                gff3_lines.append(
+                    f"{gene.chrom}\t{source}\tCDS\t{cds.start+ 1}\t{cds.end}\t.\t{cds.strand}\t{cds.phase}\tID={cds.id};Parent={transcript.id}"
+                )
 
     return "\n".join(gff3_lines)
-
-
-def main(args):
-    fasta = args.ref
-    gene_dict = None
-
-    if args.format == "stringtie":
-        gene_dict = stringtie_loader(args.gff, fasta)
-
-    min_exon_num = args.min_exon_num
-    max_exon_num = args.max_exon_num
-    min_orf_size = args.min_orf_size
-
-    # step1: parse gene_dict to filter transcripts with exon number < 2 or exon number > 1000
-    gene_del_list = []
-    for gene in gene_dict.values():
-        if gene.transcripts is None:
-            gene_del_list.append(gene.id)
-            continue
-        for tx in gene.transcripts:
-            if tx.exon_num < min_exon_num or tx.exon_num > max_exon_num:
-                gene.remove_transcript(tx.id)
-        if gene.tx_num == 0:
-            gene_del_list.append(gene.id)
-
-    # delete genes with no transcripts
-    for gene_id in gene_del_list:
-        del gene_dict[gene_id]
-
-    # optional: filter genes which overlap with repeat regions
-    if args.rm_out is not None:
-        pass
-
-    # step2: select the transcript with longest ORF for each gene and size > 300
-    new_gene_dict :Dict[str, Gene] = {}
-    for gene in gene_dict.values():
-        longest_orf = None
-        longest_orf_len = 0
-        longest_tx = None
-        for tx in gene.transcripts:
-            if tx.orf is not None and len(tx.orf.cds) > longest_orf_len:
-                longest_orf = tx.orf
-                longest_orf_len = len(tx.orf.cds)
-                longest_tx = tx
-            
-        if longest_orf is not None and len(longest_orf.cds) > min_orf_size :
-            new_gene_dict[gene.id] = Gene(gene.id, gene.chrom, gene.start, gene.end, gene.strand)
-            new_gene_dict[gene.id].add_transcript(longest_tx)
-
-    # step3: export the new gene_dict to gff3 and fasta
-    gff3_out = f"{args.prefix}.gff3"
-    cds_out = f"{args.prefix}.cds.fa"
-    with open(gff3_out, "w") as gff3_file:
-        for gene in new_gene_dict.values():
-            if gene.transcripts is None:
-                continue
-            gff3_file.write(gene_to_gff3(gene) + "\n")
-
-    # step3: export the cds sequence to fasta
-    with open(cds_out, "w") as cds_file:
-        for gene in new_gene_dict.values():
-            if gene.transcripts is None:
-                continue
-            for tx in gene.transcripts:
-                cds_file.write(f">{tx.id}\n{tx.orf.cds}\n")
-
-def argparse():
-    import argparse
-    parser = argparse.ArgumentParser(description='gene annotation adapter')
-    parser.add_argument('--rm_out', type=str, help='repeatmasker output file, for example, genome.fa.out')
-    parser.add_argument('-m', '--min_exon_num', type=int, default=2, help='min exon number')
-    parser.add_argument('-M', '--max_exon_num', type=int, default=1000, help='max exon number')
-    parser.add_argument('-s', '--min_orf_size', type=int, default=300, help='min orf size')
-    parser.add_argument('-p','--prefix', type=str, help='prefix of output file', default='wgap')
-    parser.add_argument('-f', '--format', type=str, help='format of input gff file', default='stringtie')
-    parser.add_argument('ref', type=str, help='fasta file')
-    parser.add_argument('gff', type=str, help='input gtf file')
-    args = parser.parse_args()
-    return args
-
-
-if __name__ == "__main__":
-    args = argparse()
-    main(args)
-

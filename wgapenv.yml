@@ -5,15 +5,14 @@ channels:
 dependencies:
   - python>=3.7
   - pandas
+  - pyranges
   - snakemake>=5.9.1
   - click>=7
-  - biopython=1.78
-  - bcbio-gff
   - augustus>=3.4.0
-  - maker=3.01.03
   - stringtie>=2.1.7
   - star
   - minimap2
+  - miniprot
   - samtools
   - fastp
   - gffread

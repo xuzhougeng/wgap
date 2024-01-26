@@ -46,7 +46,6 @@ class Repeat:
                 f"Family: {self.repeat_family}, Score: {self.score}, Size: {self.size})")
 
     __str__ = __repr__
-    
 
 def repeat_masker_loader(repeat_file : str, skip: int = 3) -> List[Repeat]:
     """

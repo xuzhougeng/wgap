@@ -1,5 +1,4 @@
 
-
 def get_augustus_config_path(wildcards):
     import os
     import shutil
@@ -124,6 +123,7 @@ rule create_species_dir:
     """
 
 # get high quality gene model
+# TODO: gff 
 rule get_high_quality_gff:
     input: get_augustus_train_input
     output: "gene_model/augustus/round{round}/maker.gff"
@@ -201,37 +201,37 @@ rule self_vs_self_blastp:
         aa2nonred.pl --maxid={params.maxid} --diamond --cores={threads} {output.orig} {output.flt}
     """
 
-rule get_nonredudant_gene:
-    input: 
-        aa = "gene_model/augustus/round{round}/non_reduant_gene.fasta",
-        genbank = "gene_model/augustus/round{round}/training.f.gb",
-    output: temp("gene_model/augustus/round{round}/training.ff.gb")      
-    run:
-        import re
-        gene_list = set()
-        with open(input['aa'], "r") as f:
-            for line in f.readlines():
-                if line.startswith(">"):
-                    gene_list.add( line[1:] )
+# rule get_nonredudant_gene:
+#     input: 
+#         aa = "gene_model/augustus/round{round}/non_reduant_gene.fasta",
+#         genbank = "gene_model/augustus/round{round}/training.f.gb",
+#     output: temp("gene_model/augustus/round{round}/training.ff.gb")      
+#     run:
+#         import re
+#         gene_list = set()
+#         with open(input['aa'], "r") as f:
+#             for line in f.readlines():
+#                 if line.startswith(">"):
+#                     gene_list.add( line[1:] )
 
-        buffer_line = ""
-        gene_pattern = re.compile(r'\/gene=\"(\S+)\"')
-        new_gb = open(output[0], "w")
-        with open(input['genbank'], "r") as f:
-            for line in f.readlines():
-                if not line.startswith("//"):
-                    buffer_line += line
-                else:
-                    gene_id = re.findall(gene_pattern, buffer_line)[0]
-                    if gene_id not in gene_list:
-                        buffer_line += "//\n"
-                        new_gb.write(buffer_line)
-                    buffer_line = ""
-        new_gb.close()
+#         buffer_line = ""
+#         gene_pattern = re.compile(r'\/gene=\"(\S+)\"')
+#         new_gb = open(output[0], "w")
+#         with open(input['genbank'], "r") as f:
+#             for line in f.readlines():
+#                 if not line.startswith("//"):
+#                     buffer_line += line
+#                 else:
+#                     gene_id = re.findall(gene_pattern, buffer_line)[0]
+#                     if gene_id not in gene_list:
+#                         buffer_line += "//\n"
+#                         new_gb.write(buffer_line)
+#                     buffer_line = ""
+#         new_gb.close()
 
 rule downsample_gene:
-    input: "gene_model/augustus/round{round}/training.ff.gb"
-    output: temp("gene_model/augustus/round{round}/training.fff.gb")
+    input: "gene_model/augustus/round{round}/training.f.gb"
+    output: temp("gene_model/augustus/round{round}/training.ff.gb")
     params:
         threshold = config.get("training_augustus_gene_num", 1000)
     shell:"""
@@ -245,7 +245,7 @@ rule downsample_gene:
     """
 
 rule get_final_train_geneset:
-    input: "gene_model/augustus/round{round}/training.fff.gb"
+    input: "gene_model/augustus/round{round}/training.ff.gb"
     output: "gene_model/augustus/round{round}/train.gb"
     shell:"""
     cp {input} {output}

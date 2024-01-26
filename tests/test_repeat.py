@@ -1,7 +1,7 @@
 import unittest
 
-from wgap.scripts.repeat_adapter import repeat_masker_loader
-from wgap.scripts.repeat_adapter import Repeat
+from wgap.scripts.repeat import repeat_masker_loader
+from wgap.scripts.repeat import Repeat
 
 class RepeatAdapterTestCase(unittest.TestCase):
     
