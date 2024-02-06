@@ -247,7 +247,7 @@ def prepare_augustus_training_data(gff3_file, genome_fasta, species_name,
     run_command(cmd, stdout_file=filter_gene_genbank_file)
 
     # random split the gene model
-    cmd = f"randomSplit.pl {filter_gene_genbank_file} 1000"
+    cmd = f"randomSplit.pl {filter_gene_genbank_file} {gene_number}"
     run_command(cmd)
     
     return filter_gene_genbank_file + ".test"
