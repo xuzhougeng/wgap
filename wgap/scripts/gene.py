@@ -504,7 +504,7 @@ def get_attributes(attributes: str) -> Dict[str, str]:
         attributes_dict[key] = value.replace('"', '')
     return attributes_dict
 
-def stringtie_loader(stringtie_gtf: str, fasta_dict: Optional[SeqRecordDict] = None) -> Dict[str, Gene]:
+def stringtie_loader(stringtie_gtf: str, fasta_dict: SeqRecordDict = None) -> Dict[str, Gene]:
     
     gene_dict : Dict[str, Gene] = {} 
     exon_dict : Dict[str, Exon] = {}
@@ -559,7 +559,7 @@ def stringtie_loader(stringtie_gtf: str, fasta_dict: Optional[SeqRecordDict] = N
     
     return gene_dict
 
-def augustus_loader(augustus_gtf: str, fasta_dict: Optional[SeqRecordDict] = None) -> Dict[str, Gene]:
+def augustus_loader(augustus_gtf: str, fasta_dict: SeqRecordDict = None) -> Dict[str, Gene]:
 
     gene_dict: Dict[str, Gene] = {}
     cds_dict: Dict[str, CDS] = {}
@@ -622,10 +622,11 @@ def augustus_loader(augustus_gtf: str, fasta_dict: Optional[SeqRecordDict] = Non
 
     return gene_dict
 
-def gff3_loader(gff3_file: str, fasta_dict: Optional[SeqRecordDict] = None) -> Dict[str, Gene]:
+def gff3_loader(gff3_file: str, fasta_dict: SeqRecordDict = None) -> Dict[str, Gene]:
     
     gene_dict : Dict[str, Gene] = {} 
     exon_dict : Dict[str, Exon] = {}
+    cds_dict : Dict[str, CDS] = {}
     
     file_handle = open(gff3_file)
     for line in file_handle:
@@ -638,13 +639,14 @@ def gff3_loader(gff3_file: str, fasta_dict: Optional[SeqRecordDict] = None) -> D
         if len(parts) != 9:
             continue  # Ignore malformed lines
 
-        chrom, _, feature_type, start, end, _, strand, _, attributes = parts
+        chrom, _, feature_type, start, end, _, strand, phase, attributes = parts
         # gff is 1-based, convert to 0-based
         start, end = int(start) - 1, int(end)
 
         attributes_dict = dict(item.split("=") for item in attributes.split(";") if "=" in item)
 
-        if chrom not in fasta_dict:
+        # check fasta_dict is a dict
+        if  type(fasta_dict) is  dict and chrom not in fasta_dict:
             continue
 
         if feature_type == "gene":
@@ -670,6 +672,17 @@ def gff3_loader(gff3_file: str, fasta_dict: Optional[SeqRecordDict] = None) -> D
             transcript = gene_dict[gene_id].get_transcript(transcript_id)
             if transcript is not None:
                 transcript.add_exon(exon)
+        elif feature_type == "CDS":
+            cds_id = attributes_dict.get("ID", f"cds_{chrom}_{start}_{end}")
+            transcript_id = attributes_dict["Parent"]
+            sequence = fasta_dict[chrom][start:end]  # Get the exon sequence from the genome
+            
+            cds = CDS(cds_id=cds_id, chrom=chrom, start=start, end=end, strand=strand, sequence=sequence, phase=phase)
+            if cds.id not in exon_dict:
+                cds_dict[cds.id] = cds
+            transcript = gene_dict[gene_id].get_transcript(transcript_id)
+            if transcript is not None:
+                transcript.add_cds(cds)
     file_handle.close()
     
     return gene_dict

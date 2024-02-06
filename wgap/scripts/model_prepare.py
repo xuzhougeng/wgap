@@ -142,6 +142,7 @@ def find_exon_num_threshold(exon_num_list):
 
 def export(gene_dict, prefix):
     # step3: export the new gene_dict to gff3 and fasta
+    print("export the new gene_dict to gff3 and fasta")
     gff3_out = f"{prefix}.gff3"
 
     with open(gff3_out, "w") as gff3_file:
@@ -280,6 +281,7 @@ def process(gff_file, fasta_file, gff_format:str, prefix:str, min_exon_num: int,
     # print(f"threshold_category: {threshold_category}")
     # print(f"threshold: {threshold}")
     # output
+    # save the new gene_dict to gff3 and fasta
     export(new_gene_dict, prefix)
 
 
