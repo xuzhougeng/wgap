@@ -39,7 +39,7 @@ def run_snap(fasta_file, snap_hmm_file, output_dir="snap_dir") -> None:
         return
 
     cmd = ["snap", f"{snap_hmm_file}", str(fasta_file)]
-    result = subprocess.run(cmd, stdout=output_file, stderr=subprocess.PIPE)
+    result = subprocess.run(cmd, stdout=str(output_file), stderr=subprocess.PIPE)
 
     if result.returncode == 0:
         # Write a status file on successful completion
@@ -60,7 +60,7 @@ def run_glimmer(fasta_file, glimmerhmm_model_dir, output_dir="glimmer_out") -> N
     # glimmerhmm 01_35295998_35318392.fa ol
     cmd = ["glimmerhmm", str(fasta_file), glimmerhmm_model_dir]
 
-    result = subprocess.run(cmd, stdout=output_file, stderr=subprocess.PIPE)
+    result = subprocess.run(cmd, stdout=str(output_file), stderr=subprocess.PIPE)
 
     if result.returncode == 0:
         # Write a status file on successful completion
