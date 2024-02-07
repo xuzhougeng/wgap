@@ -814,7 +814,6 @@ def glimmer_loader(glimmer_file_path: str, fasta_dict: SeqRecordDict = None) -> 
     
     return gene_dict
 
-
 def gene_to_gff3(gene: Gene, source: str = 'wgap') -> str:
     gff3_lines = []
 

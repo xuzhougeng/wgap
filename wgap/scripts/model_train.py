@@ -252,10 +252,7 @@ def train_augustus_model(species_name, train_gb, config_path, intergenic_size=10
     run_command(cmd, stdout_file="autoAugTrain.log", stderr_file="autoAugTrain.stderr")
 
 
-if __name__ == '__main__':
-    """
-    mamba install -c bioconda snap glimmerhmm augustus
-    """
+def main():
     import argparse
     parser = argparse.ArgumentParser(description="Train gene prediction model")
     parser.add_argument("model", type=str, choices=["snap", "glimmer", "augustus"], help="gene prediction model")
@@ -280,3 +277,8 @@ if __name__ == '__main__':
     else:
         print("Unknown model")
         sys.exit(1)
+if __name__ == '__main__':
+    """
+    mamba install -c bioconda snap glimmerhmm augustus
+    """
+    main()
