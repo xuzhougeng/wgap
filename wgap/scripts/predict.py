@@ -37,9 +37,10 @@ def run_snap(fasta_file, snap_hmm_file, output_dir="snap_dir") -> None:
     if status_file.exists():
         print(f"Skipping {fasta_file}, already processed.")
         return
-
-    cmd = ["snap", f"{snap_hmm_file}", str(fasta_file)]
-    result = subprocess.run(cmd, stdout=str(output_file), stderr=subprocess.PIPE)
+    
+    with open(output_file, 'w') as f_out:
+        cmd = ["snap", f"{snap_hmm_file}", str(fasta_file)]
+        result = subprocess.run(cmd, stdout=f_out, stderr=subprocess.PIPE)
 
     if result.returncode == 0:
         # Write a status file on successful completion
@@ -57,10 +58,11 @@ def run_glimmer(fasta_file, glimmerhmm_model_dir, output_dir="glimmer_out") -> N
     if status_file.exists():
         print(f"Skipping {fasta_file}, already processed.")
         return
-    # glimmerhmm 01_35295998_35318392.fa ol
-    cmd = ["glimmerhmm", str(fasta_file), glimmerhmm_model_dir]
 
-    result = subprocess.run(cmd, stdout=str(output_file), stderr=subprocess.PIPE)
+    
+    with open(output_file, 'w') as f_out:
+        cmd = ["glimmerhmm", str(fasta_file), glimmerhmm_model_dir]
+        result = subprocess.run(cmd, stdout=f_out, stderr=subprocess.PIPE)
 
     if result.returncode == 0:
         # Write a status file on successful completion
