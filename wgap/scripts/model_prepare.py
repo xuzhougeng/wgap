@@ -224,9 +224,13 @@ def process(gff_file, fasta_file, gff_format:str, prefix:str, min_exon_num: int,
     # step3: select the transcript with longest ORF for each gene and size > 300
     new_gene_dict :Dict[str, Gene] = {}
     for gene in gene_dict.values():
+        seq = fasta[gene.chrom][gene.start-1:gene.end]
+        if 'N' in seq or 'n' in seq: # skip the gene with N
+            continue
         longest_orf = None
         longest_orf_len = 0
         longest_tx = None
+        
         for tx in gene.transcripts:
             if tx.orf is not None and len(tx.orf.sequence) > longest_orf_len:
                 longest_orf = tx.orf

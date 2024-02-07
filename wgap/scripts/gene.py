@@ -1,5 +1,6 @@
 from typing import Optional, Dict, List
 from wgap.scripts.seq_utils import reverse_complement, translate_cds, SeqRecordDict
+from wgap.scripts.tools import extract_chromosome_coordinates
 
 # 基因结构: gene->(mRNA->(exon->cds(?))(+) )(+) 
 # 一个基因可以有多个mRNA, 一个mRNA可以有多个exon, 一个外显子最多只有一个cds, 但是如果完全是非翻译的(UTR), 则可能没有cds片段
@@ -577,7 +578,7 @@ def augustus_loader(augustus_gtf: str, fasta_dict: SeqRecordDict = None) -> Dict
         chrom, _, feature_type, start, end, _, strand, phase, attributes = parts
         
         if len(chrom.split("_")) > 1:
-            chrom, sub_start, _ = chrom.split("_")
+            chrom, sub_start, _ = extract_chromosome_coordinates(chrom)
             # gff is 1-based, convert to 0-based
             start, end = int(start) - 1 + int(sub_start), int(end) + int(sub_start)
         else:
@@ -687,6 +688,133 @@ def gff3_loader(gff3_file: str, fasta_dict: SeqRecordDict = None) -> Dict[str, G
     
     return gene_dict
 
+def zff_loader(zff_file_path: str, fasta_dict: SeqRecordDict = None) -> Dict[str, Gene]:
+    """
+    ZFF format long
+    Label, Begin, End,  Strand, Score, 5’-overhang[phase in GFF], 3’-overhang, Frame, Group
+    5’- and 3’-overhang are the number of bp of an incomplete codon at each end of an exon
+    """
+    gene_dict: Dict[str, Gene] = {}
+    cds_dict: Dict[str, List[CDS]] = {}
+
+    with open(zff_file_path, 'r') as file:
+        for line in file:
+            if line.startswith(">"):
+                continue  # Skip header lines
+            line = line.strip()
+
+            # Process feature lines
+            parts = line.split('\t')
+            if len(parts) != 9:
+                continue  # Ensure line has enough parts for parsing
+            
+            feature_type, start, end, strand, score, phase, _, _, attributes = parts
+            start, end = int(start), int(end)
+            
+            # attributes format is : chrom-snap.id
+            coord, gene_id = attributes.split("-")
+            
+            if extract_chromosome_coordinates(coord) is not None:
+                chrom, rel_start, _ = extract_chromosome_coordinates(coord)
+                start = start + rel_start
+                end = end + rel_start
+            else:
+                chrom = coord
+            
+            cds_id = f"CDS_{chrom}_{start}_{end}"
+            cds = CDS(cds_id=cds_id, chrom=chrom, start=start, end=end, strand=strand, phase=int(phase))
+            if fasta_dict is not None:
+                cds.sequence = fasta_dict[chrom][start:end]
+
+            if gene_id not in cds_dict:
+                cds_dict[gene_id] = [ cds ]
+            else:
+                cds_dict[gene_id].append(cds)
+        
+    for gene_id, cds_list in cds_dict.items():
+        new_gene_id = f"{chrom}_{start}_{end}_{gene_id}"
+        tx_id = f"{new_gene_id}.t1"
+        # sort cds_list
+
+        cds_list = sorted(cds_list, key=lambda cds: cds.start)
+        gene_start = cds_list[0].start
+        gene_end = cds_list[-1].end
+        gene_strand = cds_list[0].strand
+        gene = Gene(gene_id=new_gene_id, chrom=chrom, start=gene_start, end=gene_end, strand=gene_strand)
+
+        tx = Transcript(transcript_id=tx_id, chrom=chrom, start=gene_start, end=gene_end, strand=gene_strand)
+        
+        for cds in cds_list:
+            tx.add_cds(cds)
+        gene.add_transcript(tx)
+
+        gene_dict[gene_id] = gene
+        
+    return gene_dict
+
+def glimmer_loader(glimmer_file_path: str, fasta_dict: SeqRecordDict = None) -> Dict[str, Gene]:
+    gene_dict: Dict[str, Gene] = {}
+    cds_dict: Dict[str, List[CDS]] = {}
+    
+    # 读取所有行
+    glimmer_result = open(glimmer_file_path).readlines()
+    # 删除空行
+    glimmer_result = [x.strip() for x in glimmer_result if x.strip() != ""]
+
+    # 解析序列名
+    chrom = ""
+    chrom_start = 0
+    sequence_name = glimmer_result[1][15:]
+    coord = extract_chromosome_coordinates(sequence_name)
+    if coord is not None:
+        chrom = coord[0]
+        chrom_start = coord[1]
+    else:
+        chrom = sequence_name
+
+    # 解析结果
+    for line in glimmer_result[6:]:
+        parts = line.split()
+        if len(parts) != 7:
+            continue  # Skip malformed lines
+        
+        gene_id, exon_id, strand, exon_type, start, end, exon_length = parts
+        start, end = int(start) + chrom_start[1], int(end) + chrom_start[1],  # Convert start and end to integers
+        
+        cds_id = f"CDS_{chrom}_{start}_{end}"
+        cds = CDS(cds_id=cds_id, chrom=chrom, start=start, end=end, strand=strand)
+        if fasta_dict is not None:
+            cds.sequence = fasta_dict[chrom][start:end]
+
+        gene_id =   "g" + gene_id
+
+        if gene_id not in cds_dict:
+            cds_dict[gene_id] = [ cds ]
+        else:
+            cds_dict[gene_id].append(cds)
+        
+    for gene_id, cds_list in cds_dict.items():
+        new_gene_id = f"{chrom}_{start}_{end}_{gene_id}"
+        tx_id = f"{new_gene_id}.t1"
+        # sort cds_list
+
+        cds_list = sorted(cds_list, key=lambda cds: cds.start)
+        gene_start = cds_list[0].start
+        gene_end = cds_list[-1].end
+        gene_strand = cds_list[0].strand
+        gene = Gene(gene_id=new_gene_id, chrom=chrom, start=gene_start, end=gene_end, strand=gene_strand)
+
+        tx = Transcript(transcript_id=tx_id, chrom=chrom, start=gene_start, end=gene_end, strand=gene_strand)
+        
+        for cds in cds_list:
+            tx.add_cds(cds)
+        gene.add_transcript(tx)
+
+        gene_dict[gene_id] = gene    
+    
+    return gene_dict
+
+
 def gene_to_gff3(gene: Gene, source: str = 'wgap') -> str:
     gff3_lines = []
 
@@ -711,8 +839,12 @@ def gene_to_gff3(gene: Gene, source: str = 'wgap') -> str:
         # CDS lines
         if len(transcript.cds) > 0:
             for cds in transcript.cds:
+                if cds.phase is None:
+                    phase = "."
+                else:
+                    phase = str(cds.phase)
                 gff3_lines.append(
-                    f"{gene.chrom}\t{source}\tCDS\t{cds.start+ 1}\t{cds.end}\t.\t{cds.strand}\t{cds.phase}\tID={cds.id};Parent={transcript.id}"
+                    f"{gene.chrom}\t{source}\tCDS\t{cds.start+ 1}\t{cds.end}\t.\t{cds.strand}\t{phase}\tID={cds.id};Parent={transcript.id}"
                 )
 
     return "\n".join(gff3_lines)

@@ -2,6 +2,7 @@ import pyranges as pr
 from pyranges.pyranges_main import PyRanges
 import os
 import shutil
+import sys
 
 from typing import Dict, List, Union
 from wgap.scripts.seq_utils import read_fasta, write_fasta, SeqRecordDict
@@ -38,11 +39,17 @@ def read_repeat_masker(repeat_file: str, skip :int = 3) -> PyRanges:
     
     return  pr.PyRanges(chromosomes = chromosome_list, starts = start_list, ends= end_list)
 
-def split_genome(fasta: SeqRecordDict | str, repeat_masker: str, stringtie: str, homology:str=None,  out_dir:str="./") -> None:
+def split_genome_by_te(fasta: SeqRecordDict | str, repeat_masker: str, stringtie: str, homology:str=None,  out_dir:str="./") -> None:
+    """
+    split the genome by remove the TE region
+
+    """
     if isinstance(fasta, str):
         fasta = read_fasta(fasta)
     # fasta_pr
-    fasta_pr = pr.PyRanges(chromosomes = list(fasta.keys()), starts = [0]*len(fasta), ends = [len(fasta[chrom]) for chrom in fasta])
+    fasta_pr = pr.PyRanges(chromosomes = list(fasta.keys()), 
+                           starts = [0]*len(fasta), 
+                           ends = [len(fasta[chrom]) for chrom in fasta])
 
     te_pr = read_repeat_masker(repeat_masker)
     # read stringtie
@@ -79,7 +86,7 @@ def split_genome(fasta: SeqRecordDict | str, repeat_masker: str, stringtie: str,
         sequence = fasta[chrom][start:end]
         write_fasta({chrom_name: sequence}, out_file)
 
-def split_genome2(fasta: SeqRecordDict | str, windows_size:int = 50000, out_dir:str="./") -> None:
+def split_genome_by_window(fasta: SeqRecordDict | str, windows_size:int = 100000, out_dir:str="./") -> None:
     
     if isinstance(fasta, str):
         fasta = read_fasta(fasta)
@@ -94,9 +101,41 @@ def split_genome2(fasta: SeqRecordDict | str, windows_size:int = 50000, out_dir:
             chrom_name = f"{chrom}_{start}_{end}"
             write_fasta({chrom_name: sequence[start:end]}, out_file)
 
+def split_genome_by_evidence(fasta: SeqRecordDict | str, stringtie: str, homology:str=None,  
+                             extend_size=5000, out_dir:str="./") -> None:
+    stringtie_gr = pr.read_gtf(stringtie)
+    stringtie_gr = stringtie_gr[stringtie_gr.Feature=="transcript"]
+    stringtie_gr = stringtie_gr[['Chromosome', 'Start', 'End', 'Strand']]
+
+    if homology is not None:
+        homology_gr = pr.read_gff3(homology)
+        homology_gr = homology_gr[homology_gr.Feature=="mRNA"]
+        homology_gr = homology_gr[["Chromosome", "Start", "End", "Strand"]]
+
+        combined_gr = pr.concat([stringtie_gr, homology_gr])
+    else:
+        combined_gr = stringtie_gr
+
+    expanded_gr = combined_gr.slack(extend_size)
+    expanded_gr = expanded_gr.merge()
+    
+    if isinstance(fasta, str):
+        fasta = read_fasta(fasta)
+    if os.path.exists(out_dir):
+        shutil.rmtree(out_dir)
+
+    os.makedirs(out_dir)
+
+    for (chrom,start,end) in zip(expanded_gr.Chromosome, expanded_gr.Start, expanded_gr.End):
+        out_file = f"{out_dir}/{chrom}_{start}_{end}.fa"
+        chrom_name = f"{chrom}_{start}_{end}"
+        sequence = fasta[chrom][start:end]
+        write_fasta({chrom_name: sequence}, out_file)   
+
 if __name__ == "__main__":
     import argparse
     args = argparse.ArgumentParser(description="Split genome into windows")
+    args.add_argument("method", help="split method", choices=["te", "windows"])
     args.add_argument("fasta", help="fasta file")
     # repeat masker result
     args.add_argument("-rm", "--repeat_masker", help="repeat masker result")
@@ -104,9 +143,17 @@ if __name__ == "__main__":
     args.add_argument("-hm", "--homology", help="homology result gff by miniprot")
     # stingtie result
     args.add_argument("-st", "--stingtie", help="stingtie result gff")
+    args.add_argument("-w", "--windows", help="windows size", default=100000, type=int)
     # outdir
     args.add_argument("-o", "--outdir", help="output dir", default="./")
 
     args = args.parse_args()
-
-    split_genome(args.fasta, args.repeat_masker, args.stingtie, args.homology, args.outdir)
+    if args.method == "windows":
+        split_genome_by_window(args.fasta, args.windows, args.outdir)
+    elif args.method == 'evidence':
+        split_genome_by_evidence()
+    elif args.method == "te":
+        split_genome_by_te(args.fasta, args.repeat_masker, args.stingtie, args.homology, args.outdir)
+    else:
+        print("method not supported")
+        sys.exit(1)

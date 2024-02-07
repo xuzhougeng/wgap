@@ -7,7 +7,8 @@ from wgap.scripts.gene import augustus_loader, gene_to_gff3
 
 MAX_WORKERS = 10
 
-def run_augustus(fasta_file, output_dir, AUGUSTUS_CONFIG_PATH, species) -> None:
+def run_augustus(fasta_file, AUGUSTUS_CONFIG_PATH, species, 
+                 output_dir="augustus_dir") -> None:
     base_name = fasta_file.stem
     output_file = output_dir / f"{base_name}.gff3"
     status_file = output_dir / f"{base_name}.status"
@@ -26,6 +27,46 @@ def run_augustus(fasta_file, output_dir, AUGUSTUS_CONFIG_PATH, species) -> None:
     else:
         raise RuntimeError(f"AUGUSTUS failed on {fasta_file}: {result.stderr}")
 
+
+def run_snap(fasta_file, snap_hmm_file, output_dir="snap_dir") -> None:
+    base_name = fasta_file.stem
+    output_file = output_dir / f"{base_name}.gff3"
+    status_file = output_dir / f"{base_name}.status"
+
+    # Skip if task already completed
+    if status_file.exists():
+        print(f"Skipping {fasta_file}, already processed.")
+        return
+
+    cmd = ["snap", f"{snap_hmm_file}", str(fasta_file), "-o", f"{output_file}"]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if result.returncode == 0:
+        # Write a status file on successful completion
+        status_file.touch()
+    else:
+        raise RuntimeError(f"SNAP failed on {fasta_file}: {result.stderr}")
+
+def run_glimmer(fasta_file, glimmerhmm_model_dir, output_dir="glimmer_out") -> None:
+    base_name = fasta_file.stem
+
+    output_file = output_dir / f"{base_name}.gff3"
+    status_file = output_dir / f"{base_name}.status"
+
+    # Skip if task already completed
+    if status_file.exists():
+        print(f"Skipping {fasta_file}, already processed.")
+        return
+    # glimmerhmm 01_35295998_35318392.fa ol
+    cmd = ["glimmerhmm", str(fasta_file), glimmerhmm_model_dir]
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if result.returncode == 0:
+        # Write a status file on successful completion
+        status_file.touch()
+    else:
+        raise RuntimeError(f"GLIMMER failed on {fasta_file}: {result.stderr}")
 
 
 def merge_gff3_files(input_dir, output_file) -> None:

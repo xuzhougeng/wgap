@@ -48,7 +48,7 @@ def mirror_intervals_within_range(A, sub_intervals):
     # 返回翻转后的子区间列表
     return reversed_intervals
 
-def prepare_snap_training_data(fasta_path, gff_path, zff_path):
+def prepare_snap_training_data(gff_path, genome_fasta, prefix):
     """
     准备并打印基于FASTA和GFF文件的SNAP训练数据。
 
@@ -56,59 +56,56 @@ def prepare_snap_training_data(fasta_path, gff_path, zff_path):
     fasta_path -- FASTA文件的路径
     gff_path -- GFF文件的路径
     """
-    gene_exons = {}
-    try:
-        gff_file = gzip.open(gff_path, 'rt') if gff_path.endswith('.gz') else open(gff_path, 'r')
-        with gff_file as file:
-            for line in file:
-                if line.startswith('#'):
-                    continue
-                chromosome, _, feature, start, end, _, strand, _, attributes = line.strip().split('\t')
-                if feature != 'CDS':
-                    continue
-                gene_name = [attr for attr in attributes.split(';') if attr.startswith('Parent=')][0].split('=')[1]
-                start, end = (end, start) if strand == '-' else (start, end)
-                if chromosome not in gene_exons:
-                    gene_exons[chromosome] = {}
-                if gene_name not in gene_exons[chromosome]:
-                    gene_exons[chromosome][gene_name] = []
-                gene_exons[chromosome][gene_name].append((start, end))
-    except FileNotFoundError:
-        sys.exit(f"File not found: {gff_path}")
+    # get real path of gff3_file and genome_fasta
+    fasta_dict = read_fasta(genome_fasta)
+    model_dict = {k : [] for k in fasta_dict.keys()} 
+    gene_model_dict = gff3_loader(gff_path, fasta_dict)    
+    
+    for gene in gene_model_dict.values():
+        chrom = gene.chrom
+        model_dict[chrom].append(gene)
+    
+    for key in model_dict.keys():
+        model_dict[key] = sorted(model_dict[key], key=lambda x: x.start)
 
-    sequence_ids = []
-    try:
-        fasta_file = gzip.open(fasta_path, 'rt') if fasta_path.endswith('.gz') else open(fasta_path, 'r')
-        with fasta_file as file:
-            for line in file:
-                if line.startswith('>'):
-                    sequence_id = line.strip().split('>')[1]
-                    sequence_ids.append(sequence_id)
-    except FileNotFoundError:
-        sys.exit(f"File not found: {fasta_path}")
+    zff_file = os.path.realpath(f"{prefix}.zff")
+    with open(zff_file, "w") as fh:
+        for chrom, genes in model_dict.items():
+            fh.write(f">{chrom}\n")
+            for gene in genes:
+                for tx in gene.transcripts:
+                    exon_list = tx.cds
+                    if tx.strand == "-":
+                        exon_list = sorted(exon_list, key=lambda x: x.start, reverse=True)                        
+                    else:
+                        exon_list = sorted(exon_list, key=lambda x: x.start)
+                    if len(exon_list) == 1:
+                        exon = exon_list[0]
+                        if tx.strand == "-":
+                            fh.write(" ".join(["Esngl", str(exon.end), str(exon.start + 1), tx.id]) + "\n")
+                        else:
+                            fh.write(" ".join(["Esngl", str(exon.start + 1), str(exon.end), tx.id]) + "\n")
+                    else:
+                        init_exon = exon_list.pop(0)
+                        stop_exon = exon_list.pop(-1)
+                        if tx.strand == "-":
+                            fh.write(" ".join(["Einit", str(init_exon.end), str(init_exon.start+1), tx.id]) + "\n")
+                            for exon in exon_list:
+                                fh.write(" ".join(["Exon", str(exon.end), str(exon.start+1), tx.id]) + "\n")
+                            fh.write(" ".join(["Eterm", str(stop_exon.end), str(stop_exon.start+1), tx.id]) + "\n")
+                        else:
+                            fh.write(" ".join(["Einit", str(init_exon.start+1), str(init_exon.end), tx.id]) + "\n")
+                            for exon in exon_list:
+                                fh.write(" ".join(["Exon", str(exon.start+1), str(exon.end), tx.id]) + "\n")
+                            fh.write(" ".join(["Eterm", str(stop_exon.start+1), str(stop_exon.end), tx.id]) + "\n")
+    return zff_file
 
-    # 打印结果
-    with open(zff_path, 'w') as file:
-        for chromosome in sequence_ids:
-            file.write(f">{chromosome}\n")
-            if chromosome in gene_exons:
-                for gene in gene_exons[chromosome]:
-                    for exon in gene_exons[chromosome][gene]:
-                        file.write(f"Exon {exon[0]} {exon[1]} {gene}\n")
-
-def train_snap_model(gff3_file, genome_fasta, prefix = "snap", intergenic_size=1000):
+def train_snap_model(zff_file, genome_fasta, prefix = "snap", intergenic_size=1000):
 
     # create a directory to store the training data
     train_dir = "snap_train"
     if not os.path.exists(train_dir):
         os.makedirs(train_dir)
-    
-    # get real path of gff3_file and genome_fasta
-    gff3_file = os.path.realpath(gff3_file)
-    genome_fasta = os.path.realpath(genome_fasta)
-    
-    zff_file = os.path.realpath(f"{prefix}.zff")
-    prepare_snap_training_data(genome_fasta, gff3_file, zff_file)
     
     # split genes into various categories
     cmd = f"cd {train_dir} && fathom -categorize {intergenic_size} {zff_file} {genome_fasta}"
@@ -117,10 +114,6 @@ def train_snap_model(gff3_file, genome_fasta, prefix = "snap", intergenic_size=1
     #  export all of the uni genes into their plus-stranded versions
     cmd = f"cd {train_dir} && fathom -export {intergenic_size} -plus uni.ann uni.dna"
     run_command(cmd)
-
-    # valite again
-    # cmd = f"cd {train_dir} && fathom -validate export.ann export.dna"
-    # run_command(cmd)
 
     # create a large number of model files.
     cmd = f"cd {train_dir} && forge export.ann export.dna"
@@ -169,9 +162,9 @@ def prepare_glimmer_training_data(gff3_file, genome_fasta, gene_number=500, pref
                     # print(cds_start ,cds_end)
             fh2.write(f"\n")
                 
-def train_glimmer_model(mfasta_file, exon_file):
+def train_glimmer_model(mfasta_file, exon_file, prefix):
     
-    cmd = f"trainGlimmerHMM {mfasta_file} {exon_file}"
+    cmd = f"trainGlimmerHMM {mfasta_file} {exon_file} -d  TrainGlimmM_{prefix}"
     # run command in shell
     run_command(cmd)
 
@@ -276,10 +269,11 @@ if __name__ == '__main__':
 
     if args.model == "snap":
         # check snap is excutable
-        train_snap_model(args.gff3, args.genome, args.prefix, args.intergenic_size)
+        zff_file = prepare_snap_training_data(args.genome, args.gff3, args.prefix)
+        train_snap_model(zff_file, args.genome, args.prefix, args.intergenic_size)
     elif args.model == "glimmer":
         prepare_glimmer_training_data(args.gff3, args.genome, args.gene_number, args.prefix)
-        train_glimmer_model(f"{args.prefix}.mfasta", f"{args.prefix}.exon_coords")
+        train_glimmer_model(f"{args.prefix}.mfasta", f"{args.prefix}.exon_coords", args.prefix)
     elif args.model == "augustus":
         test_gb = prepare_augustus_training_data(args.gff3, args.genome, args.prefix, args.gene_number, args.intergenic_size)
         train_augustus_model(args.prefix, test_gb, "augustus/config", args.intergenic_size)
