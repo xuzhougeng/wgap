@@ -28,7 +28,7 @@ def stringtie_to_gff3(stringtie_gtf, gff3_out, source="StringTe"):
             out_line = f"{chrom}\t{source}\t{feature}\t{start}\t{end}\t{score}\t{strand}\t{frame}\tID={tx_id}\n"
             evmfile.write(out_line)
 
-def miniprot_to_spliced_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
+def miniprot_to_spliced_gff3(miniprot_gtf, gff3_out, source="miniprot_protAln"):
     """
     Reimplement the function from  miniprot_GFF_2_EVM_alignment_GFF3.py which contributed by: Kresimir.Krizanovic@fer.hr
     """
@@ -66,7 +66,7 @@ def miniprot_to_spliced_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
                     for cds_line in cds_lines:
                         cnt += 1
                         # no exon lines for spliced alignments
-                        cds_line[1] = "miniprot_protAln"
+                        cds_line[1] = source
                         cds_line[2] = "nucleotide_to_protein_match"
                         # modifying CDS line params to set ID and setting score fiels as identity percentage
                         cds_elems = cds_line[8].split(";")
@@ -113,7 +113,7 @@ def miniprot_to_spliced_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
         for cds_line in cds_lines:
             cnt += 1
             # no exon lines for spliced alignments
-            cds_line[1] = "miniprot_protAln"
+            cds_line[1] =  source
             cds_line[2] = "nucleotide_to_protein_match"
             # modifying CDS line params to set ID and setting score fiels as identity percentage
             cds_elems = cds_line[8].split(";")
@@ -205,6 +205,7 @@ def miniprot_to_gene_structure_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
                 pass
             else:
                 elements = line.split("\t")
+                elements[1] = source
                 if elements[2].upper() == "MRNA":
                     start = False  # We have collected some data - not start any more
                     mrna_line = elements
@@ -259,7 +260,7 @@ def main():
     parser.add_argument("input", help="Input gtf/gff file")
     parser.add_argument("output", help="Output gff3 file")
     parser.add_argument("--source", default="StringTie", help="Source of the input file")
-    parser.add_argument("--type", default="stringtie", help="Type of the input file")
+    parser.add_argument("--type", default="stringtie", choices=["stringtie", "miniprot"], help="Type of the input file")
     parser.add_argument("--output_type", default="spliced", choices=["spliced", "gene_structure"], help="Type of the output file")
     args = parser.parse_args()
 
