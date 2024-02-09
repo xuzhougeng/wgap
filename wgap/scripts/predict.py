@@ -176,7 +176,9 @@ def main():
     args = parser.parse_args()
 
     fasta_files = list(args.input_dir.glob('*.fa'))  # 获取输入目录下的所有 .fa 文件
-
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+        
     if args.command == 'augustus':
         run_all_augustus(fasta_files, args.AUGUSTUS_CONFIG_PATH, args.species, args.output_dir)
         merge_augustus_files(args.output_dir, "augustus.gff3")

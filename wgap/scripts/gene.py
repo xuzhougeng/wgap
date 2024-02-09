@@ -768,7 +768,7 @@ def glimmer_loader(glimmer_file_path: str, fasta_dict: SeqRecordDict = None) -> 
     coord = extract_chromosome_coordinates(sequence_name)
     if coord is not None:
         chrom = coord[0]
-        chrom_start = coord[1]
+        chrom_start = int(coord[1])
     else:
         chrom = sequence_name
 
@@ -779,7 +779,7 @@ def glimmer_loader(glimmer_file_path: str, fasta_dict: SeqRecordDict = None) -> 
             continue  # Skip malformed lines
         
         gene_id, exon_id, strand, exon_type, start, end, exon_length = parts
-        start, end = int(start) + chrom_start[1], int(end) + chrom_start[1],  # Convert start and end to integers
+        start, end = int(start) + chrom_start, int(end) + chrom_start  # Convert start and end to integers
         
         cds_id = f"CDS_{chrom}_{start}_{end}"
         cds = CDS(cds_id=cds_id, chrom=chrom, start=start, end=end, strand=strand)
