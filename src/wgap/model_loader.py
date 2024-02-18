@@ -185,7 +185,11 @@ def gff3_loader(gff3_file: str, fasta_dict: SeqRecordDict = None) -> Dict[str, G
         elif feature_type == "exon":
             exon_id = attributes_dict.get("ID", f"exon_{chrom}_{start}_{end}")
             transcript_id = attributes_dict["Parent"]
-            sequence = fasta_dict[chrom][start:end]  # Get the exon sequence from the genome
+
+            sequence = None
+            if fasta_dict is not None:
+                sequence = fasta_dict[chrom][start:end]  # Get the exon sequence from the genome
+
             exon = Exon(exon_id=exon_id, chrom=chrom, start=start, end=end, strand=strand, sequence=sequence)
             if exon.id not in exon_dict:
                 exon_dict[exon.id] = exon
@@ -195,7 +199,10 @@ def gff3_loader(gff3_file: str, fasta_dict: SeqRecordDict = None) -> Dict[str, G
         elif feature_type == "CDS":
             cds_id = attributes_dict.get("ID", f"cds_{chrom}_{start}_{end}")
             transcript_id = attributes_dict["Parent"]
-            sequence = fasta_dict[chrom][start:end]  # Get the exon sequence from the genome
+            
+            sequence = None
+            if fasta_dict is not None:
+                sequence = fasta_dict[chrom][start:end]  # Get the exon sequence from the genome
             
             cds = CDS(cds_id=cds_id, chrom=chrom, start=start, end=end, strand=strand, sequence=sequence, phase=phase)
             if cds.id not in exon_dict:
