@@ -1,9 +1,9 @@
 
-from wgap.scripts.tools import extract_chromosome_coordinates
+from .tools import extract_chromosome_coordinates
 from typing import Dict, List
 
-from wgap.scripts.gene import Gene, Transcript, Exon, CDS
-from wgap.scripts.seq_utils import SeqRecordDict
+from .gene import Gene, Transcript, Exon, CDS
+from .seq_utils import SeqRecordDict
 
 def get_attributes(attributes: str) -> Dict[str, str]:
     """

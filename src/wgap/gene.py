@@ -1,5 +1,5 @@
 from typing import Optional, Dict, List
-from wgap.scripts.seq_utils import reverse_complement, translate_cds
+from .seq_utils import reverse_complement, translate_cds
 
 
 # 基因结构: gene->(mRNA->(exon->cds(?))(+) )(+) 

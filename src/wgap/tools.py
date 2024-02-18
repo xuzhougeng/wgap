@@ -6,8 +6,6 @@ import urllib.request
 from Bio import SwissProt
 import re
 
-from wgap import root_dir
-
 
 def extract_chromosome_coordinates(input_str):
     # 使用正则表达式匹配字符串
@@ -24,19 +22,19 @@ def extract_chromosome_coordinates(input_str):
         return None
 
 
-def get_snakefile(file = "Snakefile"):
+def get_snakefile(root_dir, file = "Snakefile"):
     sf = os.path.join(root_dir, file)
     if not os.path.exists(sf):
         sys.exit("Unable to locate the Snakemake workflow file;  tried %s" %sf)
     return sf
 
-def get_configfile(file = "template_config.yaml"):
+def get_configfile(root_dir, file = "template_config.yaml"):
     sf = os.path.join(root_dir, file)
     if not os.path.exists(sf):
         sys.exit("Unable to locate the config.yaml file;  tried %s" %sf)
     return sf
 
-def get_samplefile(file = "template_sample.csv"):
+def get_samplefile(root_dir, file = "template_sample.csv"):
     sf = os.path.join(root_dir, file)
     if not os.path.exists(sf):
         sys.exit("Unable to locate the sample.csv file;  tried %s" %sf)

@@ -5,7 +5,7 @@ import shutil
 import sys
 
 from typing import Dict, List, Union
-from wgap.scripts.seq_utils import read_fasta, write_fasta, SeqRecordDict
+from .seq_utils import read_fasta, write_fasta, SeqRecordDict
 
 def read_repeat_masker(repeat_file: str, skip :int = 3) -> PyRanges:
     

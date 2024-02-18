@@ -1,6 +1,6 @@
 
-from wgap.scripts.maker_update import gff_reader
-from wgap.scripts.maker_update import gff_writer
+from .maker_update import gff_reader
+from .maker_update import gff_writer
 from BCBio import GFF
 from Bio.SeqFeature import SeqFeature
 from Bio.SeqRecord import SeqRecord
