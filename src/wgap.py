@@ -7,11 +7,11 @@ import subprocess
 from shutil import copyfile
 from snakemake import load_configfile
 
-from wgap.scripts import utils
-from wgap.scripts import maker_update
-from wgap.scripts import maker_rescue
+from .wgap import utils
+from .wgap import maker_update
+from .wgap import maker_rescue
 
-from wgap import __version__
+from .wgap import __version__
 
 #from wagp.conf import run_init
 

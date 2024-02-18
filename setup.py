@@ -1,14 +1,13 @@
 from os import path
-from os.path import join
-import setuptools
+from setuptools import find_packages, setup
 
-# read the README
+# Read the README for the long description
 this_directory = path.abspath(path.dirname(__file__))
-with open(join( this_directory, "README.md"), encoding="utf-8") as f:
+with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-setuptools.setup(
-    name="wgap", # Replace with your own username
+setup(
+    name="wgap",
     version="0.7.2",
     url="https://github.com/xuzhuogeng/wgap",
     project_urls={
@@ -19,12 +18,15 @@ setuptools.setup(
     description="A whole genome annotation pipeline",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=['wgap'],
-    package_data = {'': ["wgap/*",]},
-    data_files = [ (".", ["README.md"] ) ],
-    include_package_data = True,
+    package_dir={"": "src"},  # Specify the root directory for packages
+    packages=find_packages(where="src"),  # Find packages in the src directory
+    package_data={
+        "": ["*.md", "envs/*", "rules/*.smk", "*.yaml", "*.csv"],  # Include additional files
+        "wgap": ["*.py"],  # Include all Python files in the wgap package
+    },
+    include_package_data=True,
     python_requires=">=3.7",
-    entry_points = {
+    entry_points={
         'console_scripts': [
             'wgap = wgap.wgap:cli'
         ]
