@@ -5,7 +5,7 @@ from wgap.scripts.gene import Orf, Gene, Transcript,Exon
 
 from wgap.scripts.seq_utils import read_fasta
 
-from wgap.scripts.gene import gff3_loader
+from wgap.scripts.model_loader import gff3_loader
 
 
 

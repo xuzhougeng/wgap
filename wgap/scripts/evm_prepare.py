@@ -252,7 +252,6 @@ def miniprot_to_gene_structure_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
             pass
 
     logging.info(f"Done! Read {i} lines")
-  
 
 def main():
     import argparse

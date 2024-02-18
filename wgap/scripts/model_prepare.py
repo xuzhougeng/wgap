@@ -1,6 +1,7 @@
 from typing import Optional, Dict, List
 from wgap.scripts.seq_utils import SeqRecordDict, read_fasta
-from wgap.scripts.gene import stringtie_loader,Gene,gene_to_gff3
+from wgap.scripts.gene import Gene,gene_to_gff3
+from wgap.scripts.model_loader import stringtie_loader
 import numpy as np
 
 from subprocess import Popen, PIPE

@@ -3,7 +3,8 @@ import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from wgap.scripts.gene import augustus_loader, zff_loader, glimmer_loader, gene_to_gff3
+from wgap.scripts.gene import gene_to_gff3
+from wgap.scripts.model_loader import augustus_loader, zff_loader, glimmer_loader
 
 MAX_WORKERS = 10
 
