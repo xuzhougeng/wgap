@@ -28,7 +28,7 @@ setup(
     python_requires=">=3.7",
     entry_points={
         'console_scripts': [
-            'wgap = wgap.wgap:cli'
+            'wgap = wgap.main:cli'
         ]
     },
     classifiers=[
