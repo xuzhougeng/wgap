@@ -301,8 +301,7 @@ def main(args):
 
     process(gff_file, fasta_file, gff_format, prefix, min_exon_num, max_exon_num, min_orf_size )
 
-
-def argparse():
+if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='gene annotation adapter')
     parser.add_argument('-m', '--min_exon_num', type=int, default=2, help='min exon number')
@@ -313,9 +312,4 @@ def argparse():
     parser.add_argument('ref', type=str, help='fasta file')
     parser.add_argument('gff', type=str, help='input gtf file')
     args = parser.parse_args()
-    return args
-
-
-if __name__ == "__main__":
-    args = argparse()
     main(args)

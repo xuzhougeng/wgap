@@ -153,38 +153,7 @@ def init_workdir(workdir):
 # )
 # def export():
 
-# download command for homology evidence
-@cli.command(
-    'download',
-    context_settings = {"ignore_unknown_options" : True},
-    short_help = "dowanlod the protein sequence from Swiss/UniPort"
-)
-@click.argument(
-    "fasta",
-    default="protein.fa"
-)
-@click.option(
-    "-s", "--specie",
-    default="plants",
-    type = click.Choice(["archaea", "bacteria", "fungi", "human", "invertebrates",
-    "mammals","plants","rodents", "vertebrates", "viruses"]),
-    help = "choose your own specie"
-)
-@click.option(
-    "-d", "--dataset",
-    default="sprot",
-    type=click.Choice(["sprot", "trembl"]),
-    help="sprot is recommended"
-)
-def download_protein(fasta, specie, dataset):
 
-    logging.info("Downloading: %s" % dataset + "_"+ specie )
-    dat_file = ""
-    dat_file = utils.download_uniprot(specie, dataset)
-    if not dat_file:
-        sys.exit(1)
-    utils.convet_dat_to_fasta(dat_file, fasta)
-    logging.info("Finished: %s" % fasta )
 
 ############################################
 #  rescue the gff with given list of gene

@@ -485,37 +485,46 @@ class Gene:
     @property
     def tx_num(self):
         return self._tx_num
+    
+    def to_gff3(self, source='wgap') -> str:
+        # Validate required gene attributes
+        required_attributes = ['chrom', 'start', 'end', 'strand', 'id', 'transcripts']
+        for attr in required_attributes:
+            if not hasattr(self, attr):
+                raise ValueError(f"Gene object is missing required attribute: {attr}")
 
-def gene_to_gff3(gene: Gene, source: str = 'wgap') -> str:
-    gff3_lines = []
+        # Initialize GFF3 lines list
+        gff3_lines = []
 
-    # Gene line
-    gff3_lines.append(
-        f"{gene.chrom}\t{source}\tgene\t{gene.start + 1}\t{gene.end}\t.\t{gene.strand}\t.\tID={gene.id}"
-    )
-
-    # Transcript lines
-    for transcript in gene.transcripts:
+        # Gene line
         gff3_lines.append(
-            f"{gene.chrom}\t{source}\tmRNA\t{transcript.start+ 1}\t{transcript.end}\t.\t{transcript.strand}\t.\tID={transcript.id};Parent={gene.id}"
+            f"{self.chrom}\t{source}\tgene\t{self.start + 1}\t{self.end}\t.\t{self.strand}\t.\tID=gene:{self.id}"
         )
 
-        # Exon lines
-        if len(transcript.exons) > 0:
-            for exon in transcript.exons:
-                gff3_lines.append(
-                    f"{gene.chrom}\t{source}\texon\t{exon.start+ 1}\t{exon.end}\t.\t{exon.strand}\t.\tID={exon.id};Parent={transcript.id}"
-                )
+        # Validate and append transcript lines
+        for transcript in self.transcripts:
+            # Validate transcript attributes
+            for attr in ['start', 'end', 'strand', 'id', 'exons' ]:
+                if not hasattr(transcript, attr):
+                    raise ValueError(f"Transcript object is missing required attribute: {attr}")
 
-        # CDS lines
-        if len(transcript.cds) > 0:
-            for cds in transcript.cds:
-                if cds.phase is None:
-                    phase = "."
-                else:
-                    phase = str(cds.phase)
-                gff3_lines.append(
-                    f"{gene.chrom}\t{source}\tCDS\t{cds.start+ 1}\t{cds.end}\t.\t{cds.strand}\t{phase}\tID={cds.id};Parent={transcript.id}"
-                )
+            gff3_lines.append(
+                f"{self.chrom}\t{source}\tmRNA\t{transcript.start + 1}\t{transcript.end}\t.\t{transcript.strand}\t.\tID=transcript:{transcript.id};Parent=gene:{self.id}"
+            )
 
-    return "\n".join(gff3_lines)
+            # Validate, format, and append exon lines
+            if transcript.exons:
+                for exon in transcript.exons:
+                    gff3_lines.append(
+                        f"{self.chrom}\t{source}\texon\t{exon.start + 1}\t{exon.end}\t.\t{exon.strand}\t.\tID=exon:{exon.id};Parent=transcript:{transcript.id}"
+                    )
+
+            # Validate, format, and append CDS lines
+            if transcript.cds:
+                for cds in transcript.cds:
+                    phase = '.' if cds.phase is None else str(cds.phase)
+                    gff3_lines.append(
+                        f"{self.chrom}\t{source}\tCDS\t{cds.start + 1}\t{cds.end}\t.\t{cds.strand}\t{phase}\tID=cds:{cds.id};Parent=transcript:{transcript.id}"
+                    )
+
+        return "\n".join(gff3_lines)

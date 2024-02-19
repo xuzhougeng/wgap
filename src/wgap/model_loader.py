@@ -1,5 +1,5 @@
 
-from .tools import extract_chromosome_coordinates
+from .utils import extract_chromosome_coordinates
 from typing import Dict, List
 
 from .gene import Gene, Transcript, Exon, CDS

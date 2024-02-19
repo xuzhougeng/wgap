@@ -1,5 +1,7 @@
 from os import path
+from src.wgap import __version__
 from setuptools import find_packages, setup
+
 
 # Read the README for the long description
 this_directory = path.abspath(path.dirname(__file__))
@@ -8,7 +10,7 @@ with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="wgap",
-    version="0.7.2",
+    version= __version__,
     url="https://github.com/xuzhuogeng/wgap",
     project_urls={
         "Bug Tracker": "https://github.com/xuzhuogeng/wgap/issues"
@@ -28,7 +30,7 @@ setup(
     python_requires=">=3.7",
     entry_points={
         'console_scripts': [
-            'wgap = wgap.main:cli'
+            'wgap = main:cli'
         ]
     },
     classifiers=[
