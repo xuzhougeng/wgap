@@ -113,33 +113,15 @@ def merge_exons_and_utrs(exon_list: List[Exon], utr_5:List[Exon], utr_3:List[Exo
 
     return merged_exons
 
-def update_gene(gene: Gene, gtf_pr: PyRanges) -> Gene:
+
+def update_gene(gene: Gene, tx_list: List[Transcript]) -> Gene:
     """
     Process a gene to find the transcript with the maximum overlap ratio.
     
     :param gene: A Gene object that includes chrom, start, end, and strand information.
-    :param gtf_pr: A PyRanges object containing gene annotations .
+    :param tx_list: A list of Transcript objects.
     :return: A Gene object with the update transcript 
     """
-
-    query_range = pr.PyRanges(chromosomes=[gene.chrom], starts=[gene.start], ends=[gene.end], strands=[gene.strand])
-
-    tx_gtf_pr = tx_gtf_pr = gtf_pr[gtf_pr.Feature == 'transcript'] # gtf_pr with only transcript
-    overlapping_regions = tx_gtf_pr.overlap(query_range)
-
-    if len(overlapping_regions) == 0:
-        return gene
-
-    tx_list = []
-    for _,row in overlapping_regions.df.iterrows():
-        # 直接使用DataFrame的能力来过滤和处理
-        exons_df = gtf_pr[ (gtf_pr.Feature== 'exon') & (gtf_pr.transcript_id== row['transcript_id']) ].df
-        exons_df['exon_id'] = exons_df['transcript_id'] + '.exon.' + exons_df['exon_number'].astype(str)
-        exon_list = [Exon(row['exon_id'], row['Chromosome'], row['Start'], row['End'], row['Strand']) for _, row in exons_df.iterrows()]
-
-        tx = Transcript(row['transcript_id'], row['Chromosome'], row['Start'], row['End'], row['Strand'], exon_list)
-        tx_list.append(tx)
-
 
     qry_tx = gene.transcripts[0]
 
@@ -153,7 +135,6 @@ def update_gene(gene: Gene, gtf_pr: PyRanges) -> Gene:
         if best_tx_exon_length > 2 * qry_tx_exon_length:
             # logging 
             print(f"Warning: The exon length of the best matching transcript {best_tx.id} is more than twice the length of the query transcript {qry_tx.id}.")
-
             return gene
     
     # 识别UTR
@@ -175,21 +156,19 @@ def update_gene(gene: Gene, gtf_pr: PyRanges) -> Gene:
     return update_gene
 
 
-def update_gene_wrapper(gene_item, gtf_pr):
-    """Simple wrapper function to update_gene with a single argument.
-    
-    """
-    gene_id, gene = gene_item
-    return gene_id, update_gene(gene, gtf_pr)
+def add_utr_to_gene_model(gff_file, gtf_file_list, out_gff_file, thread_num = 20):
 
-
-def add_utr_to_gene_model(gff_file, gtf_file_list, thread_num = 10):
-    """
-    
-    """
-    
     # Load EVM gff3 file into
     gene_dict:Dict[str, Gene] = gff3_loader(gff_file)
+    
+    # query ranges of all genes
+    query_ranges = pr.from_dict({
+        'Chromosome': [gene.chrom for gene in gene_dict.values()],
+        'Start': [gene.start for gene in gene_dict.values()],
+        'End': [gene.end for gene in gene_dict.values()],
+        'Strand': [gene.strand for gene in gene_dict.values()],
+        'GeneID': list(gene_dict.keys())
+    })
 
     # Load gtf files into PyRanges
     gtf_list = []
@@ -199,23 +178,67 @@ def add_utr_to_gene_model(gff_file, gtf_file_list, thread_num = 10):
         gtf_pr.Source = gtf_source
         gtf_list.append(gtf_pr)
 
-    # merge gtf
+    # merge gtf into one PyRanges
     gtf_pr = pr.concat(gtf_list)
 
-    process_with_gtf = partial(update_gene_wrapper, gtf_pr=gtf_pr)
+    # 筛选出转录本和外显子
+    tx_gtf_pr = gtf_pr[gtf_pr.Feature == 'transcript']
+    tx_gtf_pr = tx_gtf_pr.drop(['Score', 'Frame', 'exon_number'])
+    exon_gtf_pr = gtf_pr[gtf_pr.Feature == 'exon']
 
-    # 使用ThreadPoolExecutor并发处理每个基因
-    processed_genes = {}
+    exon_gtf_pr.exon_id = exon_gtf_pr.transcript_id + '.exon.' + exon_gtf_pr.exon_number.astype(str)
+    exon_gtf_pr = exon_gtf_pr.drop([ 'Feature', 'Source', 'Score', 'Strand', 'Frame', 'gene_id', 'FPKM', 'TPM', 'cov','exon_number'])
 
-    #  with concurrent.futures.ThreadPoolExecutor() as executor:
-    with concurrent.futures.ProcessPoolExecutor( max_workers= thread_num ) as executor:
-        # 使用map函数处理所有基因
-        results = executor.map(process_with_gtf, gene_dict.items())
+    # 合并query_ranges 和 tx_gtf_pr, 得到每个gene的转录本信息
+    query_tx_pr = query_ranges.join(tx_gtf_pr, suffix= '_tx')
 
-        # 从结果中收集处理后的基因数据
-        for gene_id, processed_gene in results:
-            processed_genes[gene_id] = processed_gene
+    full_df = query_tx_pr.df.merge(exon_gtf_pr.df, on='transcript_id', suffixes=('', '_exon'))
 
-    
-    return processed_genes
+    # 首先按 GeneID 和 transcript_id 分组
+    grouped = full_df.groupby(['GeneID', 'transcript_id'])
 
+    def create_transcript(group):
+        """根据外显子信息创建转录本对象"""
+        exon_list = [Exon(row['exon_id'], row['Chromosome_exon'], row['Start_exon'], row['End_exon'], row['Strand']) for idx, row in group.iterrows()]
+        first_row = group.iloc[0]
+        return Transcript(first_row['transcript_id'], first_row['Chromosome'], first_row['Start_tx'], first_row['End_tx'], first_row['Strand_tx'], exon_list)
+
+    # 使用 apply() 通过每个组（每个基因的每个转录本）创建转录本对象
+    transcripts = grouped.apply(create_transcript)
+
+    # 重新按 GeneID 分组以聚合每个基因的转录本列表
+    gene_to_tx_list = transcripts.groupby(level=0).apply(list).to_dict()
+
+    # update gene model for each gene in gene_dict
+    from concurrent.futures import ProcessPoolExecutor
+
+    def parallel_update_gene(gene_id: str, gene: Gene, tx_list: List[Transcript]) -> Gene:
+        """封装 update_gene 函数以适应并行调用的需求"""
+        if len(tx_list) == 0:
+            return gene_id, gene
+        updated_gene = update_gene(gene, tx_list)
+        return gene_id, updated_gene
+
+    # 存储更新后的基因模型
+    updated_gene_dict = {}
+
+    with ProcessPoolExecutor(max_workers=thread_num) as executor:
+        futures = []
+        for gene_id, gene in gene_dict.items():
+            # 提交并行任务
+            tx_list = gene_to_tx_list.get(gene_id, [])
+            future = executor.submit(parallel_update_gene, gene_id, gene, tx_list)
+            futures.append(future)
+        
+        # 收集并行执行的结果
+        for future in futures:
+            gene_id, updated_gene = future.result()
+            updated_gene_dict[gene_id] = updated_gene
+
+    return updated_gene_dict
+
+    # # save to gff3
+    # with open(out_gff_file, 'w') as f:
+    #     for gene in updated_gene_dict.values():
+    #         f.write(gene.to_gff3())
+    #         f.write('\n')

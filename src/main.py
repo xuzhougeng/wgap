@@ -147,9 +147,11 @@ def add_utr(gff3, gtf_files, output):
     """Add UTR to GFF3 file"""
     # Your add UTR logic here
     update_genes = add_utr_to_gene_model(gff3, gtf_files)
+    # save to gff3
     with open(output, 'w') as f:
-        for gene in update_genes:
+        for gene in update_genes.values():
             f.write(gene.to_gff3())
+            f.write('\n')
 
 
 
