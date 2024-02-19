@@ -3,7 +3,6 @@ import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from .gene import gene_to_gff3
 from .model_loader import augustus_loader, zff_loader, glimmer_loader
 
 MAX_WORKERS = 10
@@ -113,7 +112,7 @@ def merge_augustus_files(input_dir, output_file) -> None:
 
                 # Convert and write each gene to the output file
                 for gene_id, gene in genes.items():
-                    gff3_output = gene_to_gff3(gene)
+                    gff3_output = gene.to_gff3()
                     outfile.write(gff3_output + "\n")
 
 def merge_snap_files(input_dir, output_file) -> None:
@@ -130,7 +129,7 @@ def merge_snap_files(input_dir, output_file) -> None:
 
                 # Convert and write each gene to the output file
                 for gene_id, gene in genes.items():
-                    gff3_output = gene_to_gff3(gene)
+                    gff3_output = gene.to_gff3()
                     outfile.write(gff3_output + "\n")
 
 def merge_glimmer_files(input_dir, output_file) -> None:
@@ -147,7 +146,7 @@ def merge_glimmer_files(input_dir, output_file) -> None:
 
                 # Convert and write each gene to the output file
                 for gene_id, gene in genes.items():
-                    gff3_output = gene_to_gff3(gene)
+                    gff3_output = gene.to_gff3()
                     outfile.write(gff3_output + "\n")
 
 def main():

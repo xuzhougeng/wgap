@@ -1,6 +1,6 @@
 from typing import Optional, Dict, List
 from .seq_utils import SeqRecordDict, read_fasta
-from .gene import Gene,gene_to_gff3
+from .gene import Gene
 from .model_loader import stringtie_loader
 import numpy as np
 
@@ -148,7 +148,7 @@ def export(gene_dict, prefix):
 
     with open(gff3_out, "w") as gff3_file:
         for gene in gene_dict.values():
-            gff3_file.write(gene_to_gff3(gene) + "\n")
+            gff3_file.write(gene.to_gff3() + "\n")
 
     # step4: export the cds sequence to fasta
     cds_out = f"{prefix}.cds.fa"

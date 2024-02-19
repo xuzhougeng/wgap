@@ -8,6 +8,9 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 setup(
     name="wgap",
     version= __version__,
@@ -22,6 +25,7 @@ setup(
     long_description_content_type="text/markdown",
     package_dir={"": "src"},  # Specify the root directory for packages
     packages=find_packages(where="src"),  # Find packages in the src directory
+    install_requires=requirements,
     package_data={
         "": ["*.md", "envs/*", "rules/*.smk", "*.yaml", "*.csv"],  # Include additional files
         "wgap": ["*.py"],  # Include all Python files in the wgap package
