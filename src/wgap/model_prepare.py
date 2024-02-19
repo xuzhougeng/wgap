@@ -164,7 +164,7 @@ def export(gene_dict, prefix):
             for tx in gene.transcripts:
                 pep_file.write(f">{tx.id}\n{tx.orf.pep}\n")
 
-def process(gff_file, fasta_file, gff_format:str, prefix:str, min_exon_num: int, max_exon_num: int, min_orf_size ):
+def prepare_training_data(gff_file, fasta_file, gff_format:str, prefix:str, min_exon_num: int, max_exon_num: int, min_orf_size ):
     """
     basic filtering: exon number < 2 or exon number > 1000
     """
@@ -299,7 +299,7 @@ def main(args):
     fasta_file = args.ref
     gff_format = args.format
 
-    process(gff_file, fasta_file, gff_format, prefix, min_exon_num, max_exon_num, min_orf_size )
+    prepare_training_data(gff_file, fasta_file, gff_format, prefix, min_exon_num, max_exon_num, min_orf_size )
 
 if __name__ == "__main__":
     import argparse
