@@ -32,10 +32,41 @@ def cli(obj):
     """WGAP - a whole genome annotation pipeline
     """
 
+
+#####################################################
+########### transcriptome assembly     ##############
+#####################################################
+from importlib.resources import path
+import wgap.workflow  # Import the package containing Snakefile
+def get_snakefile(root_dir, file = "Snakefile"):
+    sf = os.path.join(root_dir, file)
+    if not os.path.exists(sf):
+        sys.exit("Unable to locate the Snakemake workflow file;  tried %s" %sf)
+    return sf
+
+def get_configfile(root_dir, file = "template_config.yaml"):
+    sf = os.path.join(root_dir, file)
+    if not os.path.exists(sf):
+        sys.exit("Unable to locate the config.yaml file;  tried %s" %sf)
+    return sf
+
+def get_samplefile(root_dir, file = "template_sample.csv"):
+    sf = os.path.join(root_dir, file)
+    if not os.path.exists(sf):
+        sys.exit("Unable to locate the sample.csv file;  tried %s" %sf)
+    return sf
+
+
+
+def get_snakefile_path():
+    with path(wgap.workflow, 'Snakefile') as snakefile_path:
+        return str(snakefile_path)
+
+
+
 #####################################################
 ########### model training command ##################
 #####################################################    
-from wgap.model_prepare import prepare_training_data
 from wgap.model_train import prepare_snap_training_data, train_snap_model
 from wgap.model_train import prepare_augustus_training_data, train_augustus_model
 from wgap.model_train import prepare_glimmer_training_data, train_glimmer_model
