@@ -27,7 +27,7 @@ setup(
     packages=find_packages(where="src"),  # Find packages in the src directory
     install_requires=requirements,
     package_data={
-        "": ["*.md", "envs/*", "workflow/*"],  # Include additional files
+        "": ["*.md", "envs/*",  "workflow/*"],  # Include additional files
         "wgap": ["*.py"],  # Include all Python files in the wgap package
     },
     include_package_data=True,

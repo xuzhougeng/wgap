@@ -36,13 +36,14 @@ def cli(obj):
 #####################################################
 ########### transcriptome assembly     ##############
 #####################################################
-from importlib.resources import path
-import wgap.workflow  # Import the package containing Snakefile
-def get_snakefile(root_dir, file = "Snakefile"):
-    sf = os.path.join(root_dir, file)
-    if not os.path.exists(sf):
-        sys.exit("Unable to locate the Snakemake workflow file;  tried %s" %sf)
-    return sf
+import importlib.resources as pkg_resources
+
+
+def get_snakefile_path():
+    print('loading snakefile')
+    # 如果workflow作为独立包存在
+    with pkg_resources.path('wgap_workflow', 'Snakefile') as snakefile_path:
+        print(snakefile_path)
 
 def get_configfile(root_dir, file = "template_config.yaml"):
     sf = os.path.join(root_dir, file)
@@ -56,11 +57,8 @@ def get_samplefile(root_dir, file = "template_sample.csv"):
         sys.exit("Unable to locate the sample.csv file;  tried %s" %sf)
     return sf
 
+get_snakefile_path()
 
-
-def get_snakefile_path():
-    with path(wgap.workflow, 'Snakefile') as snakefile_path:
-        return str(snakefile_path)
 
 
 
