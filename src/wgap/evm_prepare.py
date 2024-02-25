@@ -272,6 +272,8 @@ def prepare_evm_input(ab_initio, transcript, protein, other):
     def process_files(file_list, target_file_name):
         with open(target_file_name, 'a') as target_file:
             for file_path in file_list:
+                if (len(file_path) == 0):
+                    continue
                 with open(file_path, 'r') as input_file:
                     file_name = get_file_suffix(file_path)
                     for line in input_file:

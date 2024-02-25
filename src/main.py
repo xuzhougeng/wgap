@@ -384,13 +384,13 @@ def format_gff3(gff, source, miniprot_gff3_format, output):
 @click.option('--transcript','-tr', type=str, help='spliced alignment file from transcriptome alignment')
 @click.option('--protein', '-pr', type=str, help='spliced alignment file from transcriptome alignment')
 @click.option('--other', '-ot', type=str, help='gene structure file from other')
-def init_input_for_evm(ab, other, spliced):
+def init_input_for_evm(ab_initio, other, transcript, protein):
     """Initialize weights for EVM with given parameters."""
     # Split the input strings into lists based on spaces
-    ab_initio = ab.split() if ab else []
-    transcript = spliced.split() if spliced else []
-    protein = other.split() if other else []
-    other = other.split() if other else []
+    ab_initio = ab_initio.split() if ab_initio else None
+    transcript = transcript.split() if transcript else None
+    protein = protein.split() if protein else None
+    other = other.split() if other else None
     # Your EVM initialization logic here
     prepare_evm_input(ab_initio, transcript, protein, other)
 
