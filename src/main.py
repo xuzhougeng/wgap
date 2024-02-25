@@ -365,7 +365,8 @@ def format_gff3(gff, source, miniprot_gff3_format, output):
         # get the output file name suffix
         out_file = f'{base_name}_evm.gff3'
 
-    if output is not None:
+    print(output)
+    if len(output) > 0:
         out_file = output
 
     if source == "stringtie":
