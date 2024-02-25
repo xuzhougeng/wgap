@@ -68,13 +68,12 @@ def prepare_protein():
 @prepare.command('gtf2train')
 @click.argument('gtf', type=click.Path(exists=True))
 @click.argument('genome', type=click.Path(exists=True))
-@click.option('--gtf_source', default='stringtie', help='Output gff format')
+@click.option('--gtf_source', default='stringtie',  help='Output gff format, default=stringtie')
 @click.option('--prefix', default='wgap', help='Output model prefix')
-@click.option('--gene_number', default=1000, type=int, help='Number of genes to use for training')
-@click.option('--min_exon_num', default=3, type=int, help='Minimum exon number')
-@click.option('--max_exon_num', default=10000, type=int, help='Maximum exon number')
-@click.option('--min_orf_size', default=100, type=int, help='Minimum ORF size')
-def gtf2train(gtf, genome, gtf_source, prefix, gene_number, min_exon_num, max_exon_num, min_orf_size ):
+@click.option('--min_exon_num', default=3, type=int, help='Minimum exon number, default=3')
+@click.option('--max_exon_num', default=10000, type=int, help='Maximum exon number,default=10000')
+@click.option('--min_orf_size', default=100, type=int, help='Minimum ORF size, default=100')
+def gtf2train(gtf, genome, gtf_source, prefix, min_exon_num, max_exon_num, min_orf_size ):
     """Prepare training data for gene prediction"""
     # Your training data preparation logic here
     prepare_training_data(gtf, genome, gtf_source, prefix, min_exon_num, max_exon_num, min_orf_size )
@@ -236,12 +235,35 @@ def train_augustus(gff3, genome, prefix, gene_number, intergenic_size):
 #####################################################
 ########### model prediction command ################
 #####################################################  
+from wgap.predict import run_all_augustus, run_all_snap, run_all_glimmer
+from wgap.predict import merge_augustus_files, merge_snap_files, merge_glimmer_files
+from wgap.split_genome import split_genome_by_window, split_genome_by_evidence, split_genome_by_te
+
+
 @cli.group()
 def predict():
     """Subcommand for prediction tools"""
 
-from wgap.predict import run_all_augustus, run_all_snap, run_all_glimmer
-from wgap.predict import merge_augustus_files, merge_snap_files, merge_glimmer_files
+@predict.command('split_genome')
+@click.argument('genome', type=click.Path(exists=True))
+@click.option('--outdir', default='split_genome', help='Output directory')
+@click.option('--method', default='windows', help='Split method', type=click.Choice(['windows', 'evidence', 'te']))
+@click.option('--window_size', default=100000, help='Window size')
+@click.option('--repeat_masker', help='Repeat masker result')
+@click.option('--gene_gff', help=' Stingtie result')
+def split_genome(genome, method, window_size, repeat_masker, gene_gff, homology, outdir):
+    """Split genome into windows"""
+    # Your split genome logic here
+
+    if method == "windows":
+        split_genome_by_window(genome, window_size, outdir)
+    elif method == 'evidence':
+        split_genome_by_evidence(genome, gene_gff, homology, outdir)
+    elif method == "te":
+        split_genome_by_te(genome, repeat_masker, gene_gff, homology, outdir)
+    else:
+        print("method not supported")
+        sys.exit(1)
 
 @predict.command('augustus')
 @click.argument('input_dir', type=click.Path(exists=True, file_okay=False))
@@ -249,7 +271,6 @@ from wgap.predict import merge_augustus_files, merge_snap_files, merge_glimmer_f
 @click.option('--AUGUSTUS_CONFIG_PATH', required=True, help="AUGUSTUS config path")
 @click.option('--species', required=True, help="Species name for AUGUSTUS")
 def augustus(input_dir, output_dir, AUGUSTUS_CONFIG_PATH, species):
-    """Run AUGUSTUS on fasta files"""
     """Run AUGUSTUS on fasta files"""
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)

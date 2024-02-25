@@ -7,7 +7,7 @@ import sys
 from typing import Dict, List, Union
 from .seq_utils import read_fasta, write_fasta, SeqRecordDict
 
-def read_repeat_masker(repeat_file: str, skip :int = 3) -> PyRanges:
+def read_repeat_masker(repeat_file: str, skip :int = 3, min_te_size: int = 0) -> PyRanges:
     
     # open file and skip header
     repeat_file_handle = open(repeat_file, 'r')
@@ -33,13 +33,17 @@ def read_repeat_masker(repeat_file: str, skip :int = 3) -> PyRanges:
         start = int(fields[5]) - 1
         end = int(fields[6])
 
+        te_size = end - start
+        if te_size < min_te_size:
+            continue
+
         chromosome_list.append(chrom)
         start_list.append(start)
         end_list.append(end)
     
     return  pr.PyRanges(chromosomes = chromosome_list, starts = start_list, ends= end_list)
 
-def split_genome_by_te(fasta: SeqRecordDict | str, repeat_masker: str, stringtie: str, homology:str=None,  out_dir:str="./") -> None:
+def split_genome_by_te(fasta: SeqRecordDict | str, repeat_masker: str, stringtie: str, homology:str=None, min_te_size:int = 100, out_dir:str="./") -> None:
     """
     split the genome by remove the TE region
 
@@ -51,7 +55,7 @@ def split_genome_by_te(fasta: SeqRecordDict | str, repeat_masker: str, stringtie
                            starts = [0]*len(fasta), 
                            ends = [len(fasta[chrom]) for chrom in fasta])
 
-    te_pr = read_repeat_masker(repeat_masker)
+    te_pr = read_repeat_masker(repeat_masker, min_te_size=min_te_size)
     # read stringtie
     stringtie_pr = pr.read_gtf(stringtie)
     stringtie_pr = stringtie_pr[stringtie_pr.Feature=="transcript"]
