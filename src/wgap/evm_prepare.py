@@ -1,6 +1,7 @@
 
 import re
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -252,6 +253,57 @@ def miniprot_to_gene_structure_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
             pass
 
     logging.info(f"Done! Read {i} lines")
+
+
+def prepare_evm_input(ab_initio, transcript, protein, other):
+    """
+    Prepare input for EVM by processing input files and aggregating them into three categories:
+    gene structures, spliced alignments, and protein alignments. The second column in each file
+    is replaced with the file's name (without extension).
+    """
+    gene_structure_file_name = "gene_predictions.gff3"
+    protein_alignments_file_name = "protein_alignments.gff3"
+    transcript_alignments_file_name = "transcript_alignments.gff3"
+
+    def get_file_suffix(file_path):
+        return os.path.splitext(os.path.basename(file_path))[0]
+
+    # Function to process files and append them to a target file
+    def process_files(file_list, target_file_name):
+        with open(target_file_name, 'a') as target_file:
+            for file_path in file_list:
+                with open(file_path, 'r') as input_file:
+                    file_name = get_file_suffix(file_path)
+                    for line in input_file:
+                        parts = line.strip().split('\t')
+                        if len(parts) > 1:
+                            parts[1] = file_name  # Replace second column with file name
+                        target_file.write('\t'.join(parts) + '\n')
+
+    # Process each category of files and append to the respective target file
+    if ab_initio or other:
+        process_files(ab_initio + other, gene_structure_file_name)
+    if transcript:
+        process_files(transcript, transcript_alignments_file_name)
+    if protein:
+        process_files(protein, protein_alignments_file_name)
+    
+    # create weight file
+    with open("weights.txt", "w") as f:
+        for file_path in ab_initio:
+            file_name = get_file_suffix(file_path) 
+            f.write(f"ABINITIO_PREDICTION\t{file_name}\t1\n")
+        for file_path in transcript:
+            file_name = get_file_suffix(file_path)
+            f.write(f"TRANSCRIPT\t{file_name}\t4\n")
+        for file_path in protein:
+            file_name = get_file_suffix(file_path)
+            f.write(f"PROTEIN\t{file_name}\t2\n")
+        for file_path in other:
+            file_name = get_file_suffix(file_path)
+            f.write(f"OTHER_PREDICTION\t{file_name}\t5\n")
+
+
 
 def main():
     import argparse

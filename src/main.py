@@ -246,6 +246,7 @@ def train_augustus(gff3, genome, prefix, gene_number, intergenic_size):
 from wgap.predict import run_all_augustus, run_all_snap, run_all_glimmer
 from wgap.predict import merge_augustus_files, merge_snap_files, merge_glimmer_files
 from wgap.split_genome import split_genome_by_window, split_genome_by_evidence, split_genome_by_te
+from wgap.tools import add_exon_to_gene_model
 
 
 @cli.group()
@@ -288,6 +289,7 @@ def augustus(input_dir, output_dir, augustus_config_path, species):
         os.makedirs(output_dir)
     run_all_augustus(fasta_files, augustus_config_path, species, output_dir)
     merge_augustus_files(output_dir, "augustus.gff3")
+    add_exon_to_gene_model("augustus.gff3", "augustus.gff3")
 
 @predict.command('snap')
 @click.argument('input_dir', type=click.Path(exists=True, file_okay=False))
@@ -302,6 +304,8 @@ def snap(input_dir, output_dir, snap_hmm_file):
         os.makedirs(output_dir)
     run_all_snap(fasta_files, snap_hmm_file, output_dir)
     merge_snap_files(output_dir, "snap.gff3")
+    add_exon_to_gene_model("snap.gff3", "snap.gff3")
+
 
 @predict.command('glimmer')
 @click.argument('input_dir', type=click.Path(exists=True, file_okay=False))
@@ -316,6 +320,80 @@ def glimmer(input_dir, output_dir, glimmerhmm_model_dir):
         os.makedirs(output_dir)
     run_all_glimmer(fasta_files, glimmerhmm_model_dir, output_dir)
     merge_glimmer_files(output_dir, "glimmer.gff3")
+    add_exon_to_gene_model("glimmer.gff3", "glimmer.gff3")
+
+
+#####################################################
+###########         EVM tools         ###############
+#####################################################
+from wgap.evm_prepare import stringtie_to_gff3, miniprot_to_gene_structure_gff3, miniprot_to_spliced_gff3
+from wgap.evm_prepare import prepare_evm_input
+
+@cli.group()
+def evm():
+    """Subcommand for EVM tools"""
+
+
+
+
+@evm.command('convert')
+@click.argument('gff', type=click.Path(exists=True))
+@click.option('--source',  default='1', help='input gff source: 1 for stringtie, 2 for miniprot', type=click.Choice(['1', '2']))
+@click.option('--miniprot_gff3_format', '-mm', default='1', help='miniprot output GFF3 format: 1 for gene_structure, 2 for spliced_alignment', type=click.Choice(['1', '2']))
+@click.option('--output', default='evm.gff3', help='Output file name, default will add evm to the input gff file name')
+def format_gff3(gff, source, gff3_format):
+    """convert the input gff to gff3 for EVM"""
+    # Your format GFF3 logic here
+    # 定义映射字典
+    source_mapping = {
+        '1': 'stringtie',
+        '2': 'miniprot', 
+    }
+    source = source_mapping[source]
+
+    gff3_format_mapping = {
+        '1': 'gene_structure',
+        '2': 'spliced_alignment'
+    }
+    gff3_format = gff3_format_mapping[gff3_format]
+
+    if source == 'miniprot':
+        out_file = gff.replace('.gff', f'_{gff3_format}_evm.gff3')
+    else:
+        out_file = gff.replace('.gff', '_evm.gff3')
+
+    if source == "stringtie":
+        stringtie_to_gff3(gff, out_file, gff3_format)
+    elif source == "miniprot":
+        if gff3_format == "gene_structure":
+            miniprot_to_gene_structure_gff3(gff, out_file)
+        else:
+            miniprot_to_spliced_gff3(gff, out_file)
+    else:
+        log_exception("source not supported")
+
+
+@evm.command("init")
+@click.option('--ab_initio', '-ab', type=str, help='Gene structure from ab initio prediction tools')
+@click.option('--transcript','-tr', type=str, help='spliced alignment file from transcriptome alignment')
+@click.option('--protein', '-pr', type=str, help='spliced alignment file from transcriptome alignment')
+@click.option('--other', '-ot', type=str, help='gene structure file from other')
+def init_input_for_evm(ab, other, spliced):
+    """Initialize weights for EVM with given parameters."""
+    # Split the input strings into lists based on spaces
+    ab_initio = ab.split() if ab else []
+    transcript = spliced.split() if spliced else []
+    protein = other.split() if other else []
+    other = other.split() if other else []
+    # Your EVM initialization logic here
+    prepare_evm_input(ab_initio, transcript, protein, other)
+
+
+@evm.command('run')
+def run_evm():
+    """Run EVM"""
+    # Your EVM running logic here
+    pass
 
 
 
@@ -418,7 +496,7 @@ def update_gff(oldgff, newgff, outgff):
 #####################################################
 ########### post-processing tools     ###############
 #####################################################
-from wgap.tools import fix_gene_model
+from wgap.tools import add_exon_to_gene_model
 
 
 @cli.group()
@@ -479,11 +557,11 @@ def download_protein(fasta, specie, dataset):
     "output_file",
     type = click.Path()
 )
-def fix(input_file, output_file):
+def add_exon(input_file, output_file):
     """
-    fix the gene model
+    add the exon to the gene model
     """
-    fix_gene_model(input_file, output_file)
+    add_exon_to_gene_model(input_file, output_file)
 
 
 

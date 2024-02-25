@@ -35,24 +35,35 @@ def convet_dat_to_fasta(dat, fasta):
         file_out.writelines(out_line)
 
 
-def fix_gene_model(input_file, output_file):
-    # add exon for each CDS
-    with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:
-        for line in infile:
-            # 跳过注释行
-            if line.startswith('#'):
-                continue
+def add_exon_to_gene_model(input_file, output_file):
+    # 读取文件内容
+    with open(input_file, 'r') as infile:
+        lines = infile.readlines()
 
-            # 写入原始行
-            outfile.write(line)
+    # 处理每一行，准备修改后的内容
+    modified_lines = []
+    for line in lines:
+        # 跳过注释行
+        if line.startswith('#'):
+            modified_lines.append(line)
+            continue
 
-            # 处理 CDS 行
-            if '\tCDS\t' in line:
-                fields = line.strip().split('\t')
-                fields[2] = 'exon'  # 替换类型为 exon
-                fields[8] = fields[8].replace('CDS', 'exon')  # 替换 ID 中的 CDS 为 exon
-                new_line = '\t'.join(fields) + '\n'
-                outfile.write(new_line)
+        # 写入原始行
+        modified_lines.append(line)
+
+        # 处理 CDS 行
+        if '\tCDS\t' in line:
+            fields = line.strip().split('\t')
+            fields[2] = 'exon'  # 替换类型为 exon
+            fields[8] = fields[8].replace('CDS', 'exon')  # 替换 ID 中的 CDS 为 exon
+            new_line = '\t'.join(fields) + '\n'
+            modified_lines.append(new_line)
+
+    # 写回同一个文件
+    with open(output_file, 'w') as outfile:
+        outfile.writelines(modified_lines)
+
+    
 
 def fix_fasta(fasta, out_file):
     # MAKER only support A, C, G, T, N
