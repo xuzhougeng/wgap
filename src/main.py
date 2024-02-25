@@ -363,7 +363,7 @@ def format_gff3(gff, source, miniprot_gff3_format, output):
         out_file = f'{base_name}_{gff3_format}_evm.gff3'
     else:
         # get the output file name suffix
-        base_name = f'{base_name}_evm.gff3'
+        out_file = f'{base_name}_evm.gff3'
 
     if output is not None:
         out_file = output
