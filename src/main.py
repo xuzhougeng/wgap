@@ -269,16 +269,16 @@ def split_genome(genome, method, window_size, repeat_masker, gene_gff, homology,
 @predict.command('augustus')
 @click.argument('input_dir', type=click.Path(exists=True, file_okay=False))
 @click.argument('output_dir', type=click.Path())
-@click.option('--AUGUSTUS_CONFIG_PATH', required=True, help="AUGUSTUS config path")
+@click.option('--augustus_config_path', required=True, help="AUGUSTUS config path")
 @click.option('--species', required=True, help="Species name for AUGUSTUS")
-def augustus(input_dir, output_dir, AUGUSTUS_CONFIG_PATH, species):
+def augustus(input_dir, output_dir, augustus_config_path, species):
     """Run AUGUSTUS on fasta files"""
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
     fasta_files = list(input_dir.glob('*.fa'))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    run_all_augustus(fasta_files, AUGUSTUS_CONFIG_PATH, species, output_dir)
+    run_all_augustus(fasta_files, augustus_config_path, species, output_dir)
     merge_augustus_files(output_dir, "augustus.gff3")
 
 @predict.command('snap')

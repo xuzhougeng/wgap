@@ -80,11 +80,11 @@ def parallel_process(function, fasta_files, *args):
         for future in futures:
             future.result()  # 等待所有任务完成
 
-def run_all_augustus(fasta_files, AUGUSTUS_CONFIG_PATH, species, output_dir):
+def run_all_augustus(fasta_files, augustus_config_path, species, output_dir):
     """
     并行执行 AUGUSTUS。
     """
-    parallel_process(run_augustus, fasta_files, AUGUSTUS_CONFIG_PATH, species, output_dir)
+    parallel_process(run_augustus, fasta_files, augustus_config_path, species, output_dir)
 
 def run_all_snap(fasta_files, snap_hmm_file, output_dir):
     """
