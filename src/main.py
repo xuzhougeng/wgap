@@ -507,14 +507,21 @@ def update_gff(oldgff, newgff, outgff):
 #####################################################
 ########### post-processing tools     ###############
 #####################################################
-from wgap.tools import add_exon_to_gene_model
-
+from wgap.tools import utr_stat
 
 @cli.group()
 def tools():
     """"
     useful tools for wgap
     """
+
+@tools.command('utr_stat')
+@click.argument('gff_file', type=click.Path(exists=True))
+@click.option('--output', default='utr_stat.txt', help='Output file name')
+def gene_utr_stat(gff_file, output_file):
+    """Calculate UTR length statistics"""
+    # Your UTR statistics logic here
+    utr_stat(gff_file, output_file)
 
 @tools.command(
     'install_ext'
@@ -557,22 +564,6 @@ def download_protein(fasta, specie, dataset):
     tools.convet_dat_to_fasta(dat_file, fasta)
     logging.info("Finished: %s" % fasta )
 
-@tools.command(
-    'fix'
-)
-@click.argument(
-    "input_file",
-    type = click.Path(exists=True)
-)
-@click.argument(
-    "output_file",
-    type = click.Path()
-)
-def add_exon(input_file, output_file):
-    """
-    add the exon to the gene model
-    """
-    add_exon_to_gene_model(input_file, output_file)
 
 
 
