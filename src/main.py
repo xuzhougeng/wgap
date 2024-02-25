@@ -341,7 +341,7 @@ def evm():
 @click.option('--source',  default='1', help='input gff source: 1 for stringtie, 2 for miniprot', type=click.Choice(['1', '2']))
 @click.option('--miniprot_gff3_format', '-mm', default='1', help='miniprot output GFF3 format: 1 for gene_structure, 2 for spliced_alignment', type=click.Choice(['1', '2']))
 @click.option('--output', default='evm.gff3', help='Output file name, default will add evm to the input gff file name')
-def format_gff3(gff, source, gff3_format):
+def format_gff3(gff, source, miniprot_gff3_format):
     """convert the input gff to gff3 for EVM"""
     # Your format GFF3 logic here
     # 定义映射字典
@@ -355,7 +355,7 @@ def format_gff3(gff, source, gff3_format):
         '1': 'gene_structure',
         '2': 'spliced_alignment'
     }
-    gff3_format = gff3_format_mapping[gff3_format]
+    gff3_format = gff3_format_mapping[miniprot_gff3_format]
 
     if source == 'miniprot':
         out_file = gff.replace('.gff', f'_{gff3_format}_evm.gff3')
