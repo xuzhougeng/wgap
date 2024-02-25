@@ -244,15 +244,16 @@ from wgap.split_genome import split_genome_by_window, split_genome_by_evidence, 
 def predict():
     """Subcommand for prediction tools"""
 
-@predict.command('split_genome')
+@predict.command('split')
 @click.argument('genome', type=click.Path(exists=True))
 @click.option('--outdir', default='split_genome', help='Output directory')
 @click.option('--method', default='windows', help='Split method', type=click.Choice(['windows', 'evidence', 'te']))
 @click.option('--window_size', default=100000, help='Window size')
 @click.option('--repeat_masker', help='Repeat masker result')
-@click.option('--gene_gff', help=' Stingtie result')
+@click.option('--homology', help='Homology result in gff format')
+@click.option('--gene_gff', help='Gene gff file for evidence based split')
 def split_genome(genome, method, window_size, repeat_masker, gene_gff, homology, outdir):
-    """Split genome into windows"""
+    """Split genome into windows for parallel gene prediction"""
     # Your split genome logic here
 
     if method == "windows":
