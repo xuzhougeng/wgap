@@ -22,7 +22,7 @@ sys.path.append( script_dir )
 ###                                                                          ###
 ################################################################################
 reference=config['genome']
-specie_name = config.get('specie_name', "maker")
+specie_name = config.get('specie_name', "wgap")
 protein = config.get("protein","")
 te_lib = config.get("")
 MPI = config.get('parallel', False)
@@ -53,32 +53,6 @@ if transcript_assemble:
     #print( "RNA-seq:\n" +  "\n".join(all_gff3))
 
 
-# training the model
-training_model = config.get("training_model", False)
-
-## existed gene model
-snaphmm = config.get('snaphmm', "")
-augustus_species = config.get('augustus_species', "")
-
-snap_rounds = '0'
-augustus_rounds = '0'
-max_round = 0 # the max round of gene model training
-if training_model:
-    # snap training round
-    if 'training_snap_round' in config.keys() and config['training_snap_round'] is not None:
-        snap_rounds = str(config['training_snap_round'])
-    # augustus training round
-    if 'training_augustus_round' in config.keys() and config['training_augustus_round'] is not None:
-        augustus_rounds = str(config['training_augustus_round'])
-
-    max_round = max( int(snap_rounds[-1]), int(augustus_rounds[-1]) )
-
-if training_model and max_round == 0:
-    log_exception("In training model, training_augustus_round and training_snap_round can not be empty")
-
-if not training_model and not snaphmm and not augustus_species:
-    log_exception("In direct annotation model, neither snaphmm nor augustus_species should be set ")  
-
 localrules: all
 rule all:
     input: "maker.gff"
@@ -88,16 +62,15 @@ rule transcript_assembly:
     input: all_gff3
     output: touch("status/transcript_assemble.done")
 
-rule gene_model_training:
-    input: "status/model_training_round{round}.done".format(round=max_round)
-    output: touch("status/model_training.done")
+rule protein_alignment:
+    input: "maker.gff"
+    output: touch("status/protein_alignment.done")
 
 
 # add the rules
 include: "rules/ngs_transcript_assembly.smk"
 include: "rules/tgs_transcript_assembly.smk"
-include: "rules/model_training.smk"
-include: "rules/integration.smk"
+include: "rules/protein.smk"
 
 onsuccess:
     print("WGAP finished")

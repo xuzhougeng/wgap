@@ -164,14 +164,14 @@ def export(gene_dict, prefix):
             for tx in gene.transcripts:
                 pep_file.write(f">{tx.id}\n{tx.orf.pep}\n")
 
-def prepare_training_data(gff_file, fasta_file, gff_format:str, prefix:str, min_exon_num: int, max_exon_num: int, min_orf_size ):
+def prepare_training_data(gff_file, fasta_file, gtf_source:str, prefix:str, min_exon_num: int, max_exon_num: int, min_orf_size ):
     """
     basic filtering: exon number < 2 or exon number > 1000
     """
     fasta = read_fasta(fasta_file)
     gene_dict = None
 
-    if gff_format == "stringtie":
+    if gtf_source == "stringtie":
         gene_dict = stringtie_loader(gff_file, fasta)
 
     # step1: parse gene_dict to filter transcripts with exon number < 2 or exon number > 1000
@@ -297,9 +297,9 @@ def main(args):
     prefix = args.prefix
     gff_file = args.gff
     fasta_file = args.ref
-    gff_format = args.format
+    gtf_source = args.format
 
-    prepare_training_data(gff_file, fasta_file, gff_format, prefix, min_exon_num, max_exon_num, min_orf_size )
+    prepare_training_data(gff_file, fasta_file, gtf_source, prefix, min_exon_num, max_exon_num, min_orf_size )
 
 if __name__ == "__main__":
     import argparse

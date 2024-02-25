@@ -3,6 +3,7 @@ import sys
 import logging
 import click
 from pathlib import Path
+import importlib.resources as pkg_resources
 
 from wgap import __version__
 from wgap import tools
@@ -24,6 +25,15 @@ def log_exception(msg):
 def log_info(msg):
     logging.info(msg)
 
+
+def get_snakefile_path(file = "Snakefile"):
+    """
+    Snakefile, config.yaml, template_config.yaml, template_sample.csv
+    """
+
+    with pkg_resources.path('wgap_workflow', file) as snakefile_path:
+        print(snakefile_path)
+
 ## define command line
 @click.group(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.version_option(__version__)
@@ -33,31 +43,135 @@ def cli(obj):
     """
 
 
-#####################################################
-########### transcriptome assembly     ##############
-#####################################################
-import importlib.resources as pkg_resources
+############################################################
+###########  prepare from downstream analysis ##############
+############################################################
+from wgap.model_prepare import  prepare_training_data
+
+@cli.group()
+def prepare():
+    """Prepare the input files for annotation"""
+    
+
+# @prepare.command('transcriptome')
 
 
-def get_snakefile_path():
-    print('loading snakefile')
-    # 如果workflow作为独立包存在
-    with pkg_resources.path('wgap_workflow', 'Snakefile') as snakefile_path:
-        print(snakefile_path)
+@prepare.command('gtf2train')
+@click.argument('gtf', type=click.Path(exists=True))
+@click.argument('genome', type=click.Path(exists=True))
+@click.option('--gtf_source', default='stringtie', help='Output gff format')
+@click.option('--prefix', default='wgap', help='Output model prefix')
+@click.option('--gene_number', default=1000, type=int, help='Number of genes to use for training')
+@click.option('--min_exon_num', default=3, type=int, help='Minimum exon number')
+@click.option('--max_exon_num', default=10000, type=int, help='Maximum exon number')
+@click.option('--min_orf_size', default=100, type=int, help='Minimum ORF size')
+def gtf2train(gtf, genome, gtf_source, prefix, gene_number, min_exon_num, max_exon_num, min_orf_size ):
+    """Prepare training data for gene prediction"""
+    # Your training data preparation logic here
+    prepare_training_data(gtf, genome, gtf_source, prefix, min_exon_num, max_exon_num, min_orf_size )
 
-def get_configfile(root_dir, file = "template_config.yaml"):
-    sf = os.path.join(root_dir, file)
-    if not os.path.exists(sf):
-        sys.exit("Unable to locate the config.yaml file;  tried %s" %sf)
-    return sf
 
-def get_samplefile(root_dir, file = "template_sample.csv"):
-    sf = os.path.join(root_dir, file)
-    if not os.path.exists(sf):
-        sys.exit("Unable to locate the sample.csv file;  tried %s" %sf)
-    return sf
+# # workflow command
+# @cli.command(
+#     "run",
+#     context_settings = {"ignore_unknown_options" : True},
+#     short_help = "run wgap main workflow"
+# )
+# @click.argument(
+#     "workflow",
+#     default="all",
+#     type=click.Choice(["all", "transcript_assembly", "gene_model_training", "test"]),
+# )
+# @click.option("-w",
+#     "--working-dir",
+#     type = click.Path(dir_okay = True, writable=True, resolve_path=True),
+#     help = "project running directory",
+#     default = "."
+# )
+# @click.option("-c",
+#     "--config-file",
+#     type = click.Path(dir_okay = True, writable=True, resolve_path=True),
+#     help = "config file, generated with wgap init",
+# )
+# @click.option(
+#     "-j",
+#     "--jobs",
+#     type=int,
+#     help="use at most this many jobs in parallel (see cluster submission for mor details).",
+# )
+# @click.option(
+#     "--profile",
+#     default=None,
+#     help="snakemake profile e.g. for cluster execution.",
+# )
+# @click.option(
+#     "-n",
+#     "--dryrun",
+#     is_flag=True,
+#     default=False,
+#     show_default=True,
+#     help="Test execution.",
+# )
+# @click.argument("snakemake_args", nargs=-1, type=click.UNPROCESSED)
+# def run_workflow(workflow, working_dir, config_file, jobs, profile, dryrun, snakemake_args):
 
-get_snakefile_path()
+#     # check file availability
+#     if config_file is None:
+#         config_file = os.path.join(working_dir, 'config.yaml')
+    
+#     if not os.path.exists(config_file):
+#         logging.critical(f'config-file not found: {config_file}.')
+#         sys.exit(1)
+    
+#     conf = load_configfile(config_file)
+#     sample_file = conf['sample']
+
+#     if not os.path.exists(sample_file):
+#         logging.critical('{} is not existed'.format(sample_file))
+#         sys.exit(1)
+    
+#     # TO DO: check file avaiable
+    
+#     cmd = (
+#         "snakemake --snakefile {snakefile} --directory {working_dir}"
+#         " {jobs} --rerun-incomplete "
+#         " --configfile '{config_file}' --nolock "
+#         " {profile} {dryrun}"
+#         " {target_rule} "
+#         " {args} "
+#     ).format(
+#         snakefile = utils.get_snakefile(),
+#         working_dir = working_dir,
+#         jobs = "--jobs {}".format(jobs if jobs is not None else "4"),
+#         config_file = config_file,
+#         profile = "" if (profile is None) else "--profile {}".foramt(profile),
+#         dryrun="--dryrun" if dryrun else "",
+#         args = " ".join(snakemake_args),
+#         target_rule = workflow if workflow != "None" else ""
+#     )
+#     logging.info("Executing: %s" % cmd)
+#     try:
+#         subprocess.check_call(cmd, shell=True)
+#     except subprocess.CalledProcessError as e:
+#         logging.critical(e)
+#         exit(1)
+
+# # initiate project
+# @cli.command(
+#     'init',
+#     context_settings = {"ignore_unknown_options" : True},
+#     short_help = "copy the config.yaml and samples.csv to working directoty"
+# )
+# @click.argument(
+#     'workdir',
+#     default="."
+# )
+# def init_workdir(workdir):
+#     config_file = utils.get_configfile()
+#     sample_file = utils.get_samplefile()
+
+#     copyfile(config_file, os.path.join(workdir, "config.yaml"))
+#     copyfile(sample_file, os.path.join(workdir, "samples.csv"))
 
 
 
@@ -165,9 +279,27 @@ def glimmer(input_dir, output_dir, glimmerhmm_model_dir):
     merge_glimmer_files(output_dir, "glimmer.gff3")
 
 
+
+
+
+
+#####################################################
+########### post-processing tools     ###############
+#####################################################
+
+@cli.group()
+def post():
+    """"
+    post process tools
+    - add_utr: add UTR to GFF3 file
+    - update: update gene model
+    - rename: rename gene model 
+    """
+    
+
 # add utr with new click
 from wgap.utr import add_utr_to_gene_model
-@cli.command('add_utr')
+@post.command('add_utr')
 @click.argument('gff3', type=click.Path(exists=True))
 #gtf_files: a list of gtf files
 @click.argument('gtf_files', nargs=-1, type=click.Path(exists=True))
@@ -183,18 +315,84 @@ def add_utr(gff3, gtf_files, output):
             f.write('\n')
 
 
+@post.command(
+    'rename',
+    context_settings = {"ignore_unknown_options" : True},
+    short_help = "rename the maker.gff base on given nomenclature"
+)
+@click.argument(
+    'oldgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+)
+@click.argument(
+    'newgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+)
+@click.option('-j',
+    '--justify',
+    help = 'The unique integer portion of the ID will be right justified  with `0`s to this length (default = 5)',
+    default = 5,
+    type = int
+)
+@click.option('-p',
+    '--prefix',
+    type = str,
+    help = 'prefix of gene name',
+    required=True
+)
+def run_rename(oldgff, newgff, prefix, justify):
+    logging.info("renaming the gff")
+    ##############################################
+    #  rename the gff
+    ##############################################
+
+    # orig_models = maker_update.gff_reader(oldgff)
+    # justify = justify
+    # out_models = maker_update.update_gene_id(orig_models, prefix, justify, "wgap")
+    # maker_update.gff_writer(out_models, newgff)
+
+# # update the protein
+@post.command(
+    'update',
+    context_settings = {"ignore_unknown_options" : True},
+    short_help = "update the maker.gff base on the output of apollo"
+)
+@click.argument(
+    'oldgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+)
+@click.argument(
+    'newgff',
+    type = click.Path(dir_okay=True, writable=True, resolve_path=True),
+)
+@click.option('-o',
+    '--output',
+    type = str,
+    help = 'output gff',
+    required=True
+)
+def update_gff(oldgff, newgff, outgff):
+    logging.info("update the gff")
+    # orig_models = maker_update.gff_reader(oldgff)
+    # new_models = maker_update.gff_reader(newgff)
+    # out_models = maker_update.update_gene_model(orig_models, new_models)
+    # maker_update.gff_writer(out_models, outgff)
 
 
 #####################################################
-########### other useful tool command ###############
+########### post-processing tools     ###############
 #####################################################
-
 @cli.group()
-def tool():
-    """Subcommand for prediction tools"""
+def utils():
+    """"
+    utility tools
+    - download: download homology evidence
+    - convert: convert homology evidence
+    - filter: filter homology evidence
+    """
 
 # download command for homology evidence
-@tool.command(
+@utils.command(
     'download',
     context_settings = {"ignore_unknown_options" : True},
     short_help = "dowanlod the protein sequence from Swiss/UniPort"
