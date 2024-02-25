@@ -53,8 +53,17 @@ def prepare():
     """Prepare the input files for annotation"""
     
 
-# @prepare.command('transcriptome')
+@prepare.command('transcriptome')
+def transcript_assembly():
+    """Prepare transcriptome assembly for gene prediction"""
+    # Your transcriptome assembly logic here
+    pass
 
+@prepare.command('protein')
+def prepare_protein():
+    """Prepare protein sequence for gene prediction"""
+    # Your protein preparation logic here
+    pass
 
 @prepare.command('gtf2train')
 @click.argument('gtf', type=click.Path(exists=True))
@@ -290,10 +299,7 @@ def glimmer(input_dir, output_dir, glimmerhmm_model_dir):
 @cli.group()
 def post():
     """"
-    post process tools
-    - add_utr: add UTR to GFF3 file
-    - update: update gene model
-    - rename: rename gene model 
+    post process tools: add_utr, update, rename
     """
     
 
@@ -385,10 +391,15 @@ def update_gff(oldgff, newgff, outgff):
 @cli.group()
 def utils():
     """"
-    utility tools
-    - download: download homology evidence
-    - convert: convert homology evidence
-    - filter: filter homology evidence
+    utility tools, download
+    """
+
+@utils.command(
+    'install_ext'
+)
+def install_ext():
+    """
+    install the external tools for wgap
     """
 
 # download command for homology evidence
