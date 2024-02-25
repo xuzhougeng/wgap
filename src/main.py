@@ -204,6 +204,8 @@ def train():
 @click.option('--intergenic_size', default=1000, type=int, help='Intergenic size')
 def train_snap(gff3, genome, prefix, intergenic_size):
     """Train SNAP model"""
+    gff3 = os.path.abspath(gff3)
+    genome = os.path.abspath(genome)
     zff_file = prepare_snap_training_data(genome, gff3, prefix)
     train_snap_model(zff_file, genome, prefix, intergenic_size)
     
@@ -215,6 +217,8 @@ def train_snap(gff3, genome, prefix, intergenic_size):
 @click.option('--gene_number', default=1000, type=int, help='Number of genes to use for training')
 def train_glimmer(gff3, genome, prefix, gene_number):
     """Train Glimmer model"""
+    gff3 = os.path.abspath(gff3)
+    genome = os.path.abspath(genome)
     prepare_glimmer_training_data(gff3, genome, gene_number, prefix)
     train_glimmer_model(f"{prefix}.mfasta", f"{prefix}.exon_coords", prefix)
 
@@ -228,6 +232,10 @@ def train_glimmer(gff3, genome, prefix, gene_number):
 def train_augustus(gff3, genome, prefix, gene_number, intergenic_size):
     """Train AUGUSTUS model"""
     # Your AUGUSTUS training logic here
+    # get abs path
+    gff3 = os.path.abspath(gff3)
+    genome = os.path.abspath(genome)
+
     test_gb = prepare_augustus_training_data(gff3, genome, prefix, gene_number, intergenic_size)
     train_augustus_model(prefix, test_gb, "augustus/config", intergenic_size)
 
