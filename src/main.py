@@ -410,6 +410,9 @@ def update_gff(oldgff, newgff, outgff):
 #####################################################
 ########### post-processing tools     ###############
 #####################################################
+from wgap.tools import fix_gene_model
+
+
 @cli.group()
 def utils():
     """"
@@ -456,6 +459,24 @@ def download_protein(fasta, specie, dataset):
         sys.exit(1)
     tools.convet_dat_to_fasta(dat_file, fasta)
     logging.info("Finished: %s" % fasta )
+
+@utils.command(
+    'fix'
+)
+@click.argument(
+    "input_file",
+    type = click.Path(exists=True)
+)
+@click.argument(
+    "output_file",
+    type = click.Path()
+)
+def fix(input_file, output_file):
+    """
+    fix the gene model
+    """
+    fix_gene_model(input_file, output_file)
+
 
 
 if __name__ == '__main__':
