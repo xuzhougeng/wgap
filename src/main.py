@@ -357,10 +357,13 @@ def format_gff3(gff, source, miniprot_gff3_format, output):
     }
     gff3_format = gff3_format_mapping[miniprot_gff3_format]
 
+    base_name =  '.'.join( gff.split('.')[:-1] )
+    
     if source == 'miniprot':
-        out_file = gff.replace('.gff', f'_{gff3_format}_evm.gff3')
+        out_file = f'{base_name}_{gff3_format}_evm.gff3'
     else:
-        out_file = gff.replace('.gff', '_evm.gff3')
+        # get the output file name suffix
+        base_name = f'{base_name}_evm.gff3'
 
     if output is not None:
         out_file = output
