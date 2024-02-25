@@ -261,7 +261,7 @@ def split_genome(genome, method, window_size, repeat_masker, gene_gff, homology,
     elif method == 'evidence':
         split_genome_by_evidence(genome, gene_gff, homology, outdir)
     elif method == "te":
-        split_genome_by_te(genome, repeat_masker, gene_gff, homology, outdir)
+        split_genome_by_te(genome, repeat_masker, gene_gff, homology, 100, outdir)
     else:
         print("method not supported")
         sys.exit(1)
