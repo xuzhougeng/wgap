@@ -48,18 +48,18 @@ def mirror_intervals_within_range(A, sub_intervals):
     # 返回翻转后的子区间列表
     return reversed_intervals
 
-def prepare_snap_training_data(gff_path, genome_fasta, prefix):
+def prepare_snap_training_data( gff3_path, genome_fasta, prefix):
     """
     准备并打印基于FASTA和GFF文件的SNAP训练数据。
 
     参数:
     fasta_path -- FASTA文件的路径
-    gff_path -- GFF文件的路径
+    gff3_path -- GFF文件的路径
     """
     # get real path of gff3_file and genome_fasta
     fasta_dict = read_fasta(genome_fasta)
     model_dict = {k : [] for k in fasta_dict.keys()} 
-    gene_model_dict = gff3_loader(gff_path, fasta_dict)    
+    gene_model_dict = gff3_loader(gff3_path, fasta_dict)    
     
     for gene in gene_model_dict.values():
         chrom = gene.chrom

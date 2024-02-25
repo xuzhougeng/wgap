@@ -206,7 +206,7 @@ def train_snap(gff3, genome, prefix, intergenic_size):
     """Train SNAP model"""
     gff3 = os.path.abspath(gff3)
     genome = os.path.abspath(genome)
-    zff_file = prepare_snap_training_data(genome, gff3, prefix)
+    zff_file = prepare_snap_training_data(gff3, genome, prefix)
     train_snap_model(zff_file, genome, prefix, intergenic_size)
     
 # Define the glimmer training subcommand
