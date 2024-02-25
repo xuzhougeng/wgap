@@ -399,11 +399,16 @@ def init_input_for_evm(ab_initio, other, transcript, protein):
 def run_evm():
     """Run EVM"""
     # Your EVM running logic here
-    pass
-
-
-
-
+    comand = f"""singularity exec -e  ~/images/EVidenceModeler.v2.1.0.simg EVidenceModeler \
+    --sample_id ol \
+    --genome genome.fa \
+    --weights weights.txt \
+    --CPU 64 \
+    --gene_predictions gene_predictions.gff3 \
+    --protein_alignments protein_alignments.gff3 \
+    --transcript_alignments transcript_alignments.gff3 \
+    --segmentSize 100000 \
+    --overlapSize 10000"""
 
 
 #####################################################

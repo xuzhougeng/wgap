@@ -6,18 +6,9 @@ Citation: [![DOI](https://zenodo.org/badge/363893963.svg)](https://zenodo.org/ba
 
 BRAKER支持利用蛋白数据和转录组数据进行augustus的模型训练，最后输出augustus的预测结果，但是流程中使用到GeneMark在某些物种种表现不佳，导致augustus的模型训练存在问题。
 
-MAKER是一个比较早的软件，在已有的基因从头预测模型，根据转录组和蛋白数据输出更加可靠的基因模型。但是该流程需要我们前期处理转录组数据，以及snap和augustus的模型需要自己一步步实现，比较繁琐。
+MAKER是一个比较早的软件，在已有的基因从头预测模型，根据转录组和蛋白数据输出更加可靠的基因模型。但是该流程需要我们前期处理转录组数据，以及snap和augustus的模型需要自己一步步实现，比较繁琐。同时MAKER本质上还是从头预测软件，模型还是存在不少问题。
 
-为了简化基因组的注释流程，我基于snakemake开发了WGAP流程。WGAP流程的主体是MAKER，通过maker基于转录组和蛋白数据输出较为可靠的模型，之后基于模型对从头预测软件进行迭代训练，最后输出基因注释结果。
-
-WGAP能够同时使用二代和三代转录组数据，提高注释结果（三代转录组处理流程还在优化中）,支持从Swiss/Prot中下载相关物种的高质量蛋白序列。
-
-WGAP能够自动处理多种场景
-
-- 仅有转录组数据，进行模型训练和基因预测
-- 仅有蛋白数据，进行模型训练和基因预测
-- 已有模型，基于转录组和蛋白序列进行模型优化然后进行基因预测
-- 已有模型和蛋白数据，不需要预测，直接输出结果
+我从自己的实际需求出发，开发了一套流程，命名为WGAP (whole gneome annotation pipeline). 在这个流程中，我尽可能减少了对一些复杂软件的依赖，并且移除了最初对MAKER的依赖。不过还是需要一个EvidenceModeler, 只不过目前这个工具支持Singularity, 因此使用相对简单。
 
 ## 安装
 
@@ -28,12 +19,11 @@ WGAP的运行依赖于以下软件
 - snakemake>=5.9.1
 - click=7
 - biopython=1.78
-- bcbio-gff
 - augustus>=3.4.0
-- maker=3.01.03
 - stringtie>=2.1.7
 - star
 - minimap2
+- miniprot
 - samtools
 - fastp
 - gffread
@@ -57,141 +47,128 @@ conda env create -n wgap -f=wgapenv.yml
 安装wgap
 
 ```bash
-python setup.py install
+pip install .
 ```
 
-直接使用bioconda安装(TODO, 等待软件稳定)
+## 使用
 
-## 使用方法
+假设你的输入如下
 
-建立一个项目文件夹，例如annotation
+- 参考基因组: genome.fa
+- RNA-seq组装得到GTF文件: tissue1.gtf, tissue2.gtf, ...
 
-```bash
-mkdir -p annotation && cd annotation 
+
+TODO: 增加RNA-seq的组装流程
+
+### 使用EDTA预测TE
+
+```Python
+EDTA.pl -genome genome.fa -species others -step all -t 20
 ```
 
-初始化配置文件， 这一步会复制config.yaml 和 samples.csv 文件到annotation目录下
+利用RepeatMasker对基因组进行mask
 
-```bash
-wgap init
+```Bash
+RepeatMasker -xsmall -e rmblast -pa 20 -lib EDTA_TElib.fa  genome.fa -dir repeat
 ```
 
-下载物种的蛋白序列, 以植物为例
+### 蛋白序列的回帖
 
-```bash
-wgap download -s plants -d sprot
+为了速度，使用miniprot进行回帖 [TODO:加入自动化流程]
+
+```Bash
+mkdir homology && cd homology
+miniprot -t 16 -d genome.mpi ../genome.fa
+# 蛋白序列回帖
+miniprot -Iut16 --gff genome.mpi homology.faa > homology.pep.gff
+# （small exon 不一定找的对）
 ```
 
-注, 这一步可能会因为网络原因下载失败，多试几次即可。
+### 训练模型
 
-接着修改config.yaml中的配置信息
+二代测序数据质控，数据回帖，然后StringTie预测，得到初步的基因模型
 
-必须填写的内容
-
-- genome: 基因组序列的文件路径
-- specie_name: 物种名，后续的augustus的模型
-- protein: 蛋白序列的位置
-
-对于转录组数据, 本流程使用fastp, star, stringtie流程获取组装的转录本序列
-
-- transcript_assemble: True 或者 False, 是否组装转录本, 如果不需要组装，那么sample一行会被忽略
-- sample: "samples.csv"
-- transcript_gtf: 已有的GFF位置信息
-- transcript_fasta: 已有的组装的转录本数据
-
-对于 transcript_gtf 文件，maker要求gtf文件的第二列是match和math_part形式，可以通过如下命令进行转换
-
-```bash
-gtf=你的输入gtf文件
-gffread -E $gtf -o- | sed "s#transcript#match#g" |sed "s#exon#match_part#g" > rna_seq.gff3
+```Python
+# 准备模型的数据
+wgap prepare gtf2train --gtf_source stringtie --prefix wgap tissue1.gtf genome.fa
 ```
 
-其中, samples.csv一共分为5列，其中第二列指的是tissue, 相同tissue的多组重复会被当作一个。
-（目前暂时只支持二代转录组数据，后续会增加三代转录组的支持）
+训练模型
 
-基因训练相关参数
+```Bash
+mkdir -p model && cd model
+wgap train augustus --prefix your_species --gene_number 1000 --intergenic_size 2000 wgap.gff3 ../genome.fa
+# snap
+wgap train snap --prefix snap --intergenic_size 1000 wgap.gff3 ../genome.fa
+# glimmerhmm
+wgap train glimmer --prefix glimmer --gene_number 2000 wgap.gff3 ../genome.fa
 
-- training_model: True 或者 False, 当为False时，则snap和augustus模型不会训练，同时必须保证snaphmm和augustus_species其中一个不为空
-- training_snap_round: 12, 表示训练2轮，如果填写123，则表示训练三轮
-- training_augustus_round: 2, 表示在第2轮种训练augustus, 如果填写123, 表示和snap一样训练三轮
-
-已有的snap和augustus模型
-
-- snaphmm:  hmm路径
-- augustus_species: 物种名
-
-当已有snap和augustus模型时，wgap会使用已有的模型的进行优化。
-
-运行命令
-
-```bash
-export LIBDIR=~/miniconda3/envs/wgap/share/RepeatMasker/Libraries
-wgap run all -j 80 
 ```
 
-使用bioconda安装的RepeatMasker需要配置LIBDIR环境变量，否则会报错。
+预测基因组：
 
-## 输出结果
+```Python
+# 先拆分
+wgap predict split  --method te --repeat_masker ../repeat/genome.fa.out --gene_gff ../rna-seq/tissue1.gtf --homology ../homology/homology.pep.gff  ../genome.fa
 
-运行结束之后，关键的输出文件是如下三个
+# 在预测, 
+wgap predict augustus --augustus_config_path $PWD/augustus/config/ --species your_species split_genome tmp
+wgap predict snap --snap_hmm_file snap.hmm split_genome snap_predict
+wgap predict glimmer --glimmerhmm_model_dir TrainGlimmM_glimmer split_genome glimmer_predict
 
-- maker.gff: maker的注释结果
-- abinit.gff: snap, augustus的从头注释结果中和maker不重叠的基因
-- other.gff: 记录蛋白,转录组,重复序列位置信息
-
-maker的输出结果相对于其他注释软件会比较少，意味着有些从头预测的基因由于缺少证据被maker所过滤掉。
-
-为了提高基因数目，我开发 `rescue` 模块，用来从 abinit.gff中恢复一些较为可信的基因。
-
-我们可以使用InterProScan对maker目录下的maker_annotation.all.maker.non_overlapping_ab_initio.proteins.fasta
-进行功能域预测，保留具有功能域的基因。
-
-```bash
-interproscan.sh -cpu 80 -appl pfam -dp -f TSV  -t p -i maker/maker.all.maker.non_overlapping_ab_initio.proteins.fasta -o output.iprscan &
-cut -f 1 output.iprscan | sort -u > resue_list.txt
 ```
 
-根据基因列表，将后续基因增加到maker.gff中, 默认输出结果是 maker_recue.gff
 
-```bash
-wgap rescue maker.gff abinit.gff resue_list.tx
+### 整理EVM的输入
+
+处理miniprot和rna-seq的输入文件
+
+```Python
+# rna-seq splice alignment
+ls rna-seq/*gtf | while read gtf ; do wgap evm convert --source 1 $gtf  ;done
+
+# protein splice alignment
+wgap evm convert --source 2 -mm 2 homology/homology.pep.gff
+
+# protein gene structure
+wgap evm convert --source 2 -mm 1 homology/homology.pep.gff
+
 ```
 
-maker的默认命名格式不太适合用于后续展示，我开发了 `rename` 模块，用于对结果进行重命名
+获取权重文件
 
-```bash
-wgap rename -p AT maker_recue.gff annotation.gff
+```Python
+wgap evm init -ab "model/augustus.gff3 model/glimmer.gff3 model/snap.gff3" \
+-tr "rna-seq/tissue1_evm.gff3 rna-seq/tissue2_evm.gff3 " \
+-pr "homology/homology_spliced_alignment_evm.gff3" \
+-ot homology/homology_gene_structure_evm.gff3
 ```
 
-输出结果形如 AT1G00010, AT1G00020 其中AT是物种拉丁名缩写, 1G表示1号染色体, 00010, 00020分别表示第一个基因, 第二个基因。
-对于非染色体上的基因，例如,则直接以AT000010的形式进行编号
+得到权重文件 weight.txt 和对应的输入
 
-> 目前不支持线粒体和叶绿体的编号，后续会尽量支持更多类型的命名形式
-
-## 手工校正
-
-由于目前的注释流程都无法保证百分百的准确率，意味着后续还需要进行手工调整基因结构。为了方面对原来的gff文件进行调整，我开发 `update` 模块。
-
-```bash
-wgap -o maker_update.gff maker_recue.gff apollo_exported.gff
+```Bash
+ABINITIO_PREDICTION  augustus  1
+ABINITIO_PREDICTION  glimmer  1
+ABINITIO_PREDICTION  snap  1
+TRANSCRIPT  tissue1  4
+TRANSCRIPT  tissue2  4
+PROTEIN  homology_gene_structure_evm  3
+OTHER_PREDICTION  homology_spliced_alignment_evm  5
 ```
 
-不过目前该模块要求的输入 gff 文件的第9列必须包括 description 信息，根据 description 中的内容对原来基因模型进行调整
+使用EVM
 
-- 基因名: 
-  - 基因名在原本物种中不存在时，新增基因，
-  - 基因名在原本物种中存在时, 修改基因模型
-- 基因名delete: 删除该基因
-
-
-调整完之后，还可以继续用 `rename` 进行重命名。
-
-## 已知问题:
-
-运行到一半的时候，会提示任务被挂起
-
-```bash
-suspended (tty input)  wgap run -j 80
+```R
+singularity exec -e  ~/images/EVidenceModeler.v2.1.0.simg EVidenceModeler \
+    --sample_id your_species \
+    --genome genome.fa \
+    --weights weights.txt \
+    --CPU 64 \
+    --gene_predictions gene_predictions.gff3 \
+    --protein_alignments protein_alignments.gff3 \
+    --transcript_alignments transcript_alignments.gff3 \
+    --segmentSize 100000 \
+    --overlapSize 10000
 ```
 
-解决方法，使用 `bg %wgap` 即可让任务在后台继续运行。
+输出结果，可以用ingenannot或者PASApipeline增加UTR
