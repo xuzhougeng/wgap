@@ -518,10 +518,10 @@ def tools():
 @tools.command('utr_stat')
 @click.argument('gff_file', type=click.Path(exists=True))
 @click.option('--output', default='utr_stat.txt', help='Output file name')
-def gene_utr_stat(gff_file, output_file):
+def gene_utr_stat(gff_file, output):
     """Calculate UTR length statistics"""
     # Your UTR statistics logic here
-    utr_stat(gff_file, output_file)
+    utr_stat(gff_file, output)
 
 @tools.command(
     'install_ext'
