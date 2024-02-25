@@ -422,12 +422,12 @@ from wgap.tools import fix_gene_model
 
 
 @cli.group()
-def utils():
+def tools():
     """"
-    utility tools, download
+    useful tools for wgap
     """
 
-@utils.command(
+@tools.command(
     'install_ext'
 )
 def install_ext():
@@ -436,7 +436,7 @@ def install_ext():
     """
 
 # download command for homology evidence
-@utils.command(
+@tools.command(
     'download',
     context_settings = {"ignore_unknown_options" : True},
     short_help = "dowanlod the protein sequence from Swiss/UniPort"
@@ -468,7 +468,7 @@ def download_protein(fasta, specie, dataset):
     tools.convet_dat_to_fasta(dat_file, fasta)
     logging.info("Finished: %s" % fasta )
 
-@utils.command(
+@tools.command(
     'fix'
 )
 @click.argument(
