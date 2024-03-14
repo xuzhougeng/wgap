@@ -128,6 +128,10 @@ def split_genome_by_evidence(fasta: SeqRecordDict | str, stringtie: str, homolog
 
     expanded_gr = combined_gr.slack(extend_size)
     expanded_gr = expanded_gr.merge()
+
+    expanded_gr = pr.genomicfeatures.genome_bounds(expanded_gr,
+             chromsizes=genome_size,
+             clip=True)
     
 
     if os.path.exists(out_dir):
