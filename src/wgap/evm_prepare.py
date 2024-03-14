@@ -283,11 +283,16 @@ def prepare_evm_input(ab_initio=[], transcript= [], protein=[], other=[]):
                         target_file.write('\t'.join(parts) + '\n')
 
     # Process each category of files and append to the respective target file
-    if len(ab_initio + other) > 1:
-        process_files(ab_initio + other, gene_structure_file_name)
-    if len(transcript) > 1:
+    if ab_initio or other :
+        process_list = []
+        if ab_initio is not None:
+            process_list.extend(ab_initio)
+        if other is not None:
+            process_list.extend(other)
+        process_files(process_list, gene_structure_file_name)
+    if transcript:
         process_files(transcript, transcript_alignments_file_name)
-    if len(protein)>1:
+    if protein:
         process_files(protein, protein_alignments_file_name)
     
     # create weight file
