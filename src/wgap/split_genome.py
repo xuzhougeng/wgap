@@ -107,6 +107,12 @@ def split_genome_by_window(fasta: SeqRecordDict | str, windows_size:int = 100000
 
 def split_genome_by_evidence(fasta: SeqRecordDict | str, stringtie: str, homology:str=None,  
                              extend_size=5000, out_dir:str="./") -> None:
+    
+    if isinstance(fasta, str):
+        fasta = read_fasta(fasta)
+    
+    genome_size = {k:len(v) for k,v in fasta.items()}
+
     stringtie_gr = pr.read_gtf(stringtie)
     stringtie_gr = stringtie_gr[stringtie_gr.Feature=="transcript"]
     stringtie_gr = stringtie_gr[['Chromosome', 'Start', 'End', 'Strand']]
@@ -123,8 +129,7 @@ def split_genome_by_evidence(fasta: SeqRecordDict | str, stringtie: str, homolog
     expanded_gr = combined_gr.slack(extend_size)
     expanded_gr = expanded_gr.merge()
     
-    if isinstance(fasta, str):
-        fasta = read_fasta(fasta)
+
     if os.path.exists(out_dir):
         shutil.rmtree(out_dir)
 
