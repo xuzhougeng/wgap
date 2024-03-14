@@ -255,7 +255,7 @@ def miniprot_to_gene_structure_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
     logging.info(f"Done! Read {i} lines")
 
 
-def prepare_evm_input(ab_initio, transcript, protein, other):
+def prepare_evm_input(ab_initio=[], transcript= [], protein=[], other=[]):
     """
     Prepare input for EVM by processing input files and aggregating them into three categories:
     gene structures, spliced alignments, and protein alignments. The second column in each file
@@ -283,11 +283,11 @@ def prepare_evm_input(ab_initio, transcript, protein, other):
                         target_file.write('\t'.join(parts) + '\n')
 
     # Process each category of files and append to the respective target file
-    if ab_initio or other:
+    if len(ab_initio + other) > 1:
         process_files(ab_initio + other, gene_structure_file_name)
-    if transcript:
+    if len(transcript) > 1:
         process_files(transcript, transcript_alignments_file_name)
-    if protein:
+    if len(protein)>1:
         process_files(protein, protein_alignments_file_name)
     
     # create weight file
