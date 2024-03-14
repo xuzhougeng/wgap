@@ -255,7 +255,7 @@ def miniprot_to_gene_structure_gff3(miniprot_gtf, gff3_out, source="MiniProt"):
     logging.info(f"Done! Read {i} lines")
 
 
-def prepare_evm_input(ab_initio=[], transcript= [], protein=[], other=[]):
+def prepare_evm_input(ab_initio, transcript, protein, other):
     """
     Prepare input for EVM by processing input files and aggregating them into three categories:
     gene structures, spliced alignments, and protein alignments. The second column in each file
@@ -297,18 +297,22 @@ def prepare_evm_input(ab_initio=[], transcript= [], protein=[], other=[]):
     
     # create weight file
     with open("weights.txt", "w") as f:
-        for file_path in ab_initio:
-            file_name = get_file_suffix(file_path) 
-            f.write(f"ABINITIO_PREDICTION\t{file_name}\t1\n")
-        for file_path in transcript:
-            file_name = get_file_suffix(file_path)
-            f.write(f"TRANSCRIPT\t{file_name}\t4\n")
-        for file_path in protein:
-            file_name = get_file_suffix(file_path)
-            f.write(f"PROTEIN\t{file_name}\t2\n")
-        for file_path in other:
-            file_name = get_file_suffix(file_path)
-            f.write(f"OTHER_PREDICTION\t{file_name}\t5\n")
+        if ab_initio is not None:
+            for file_path in ab_initio:
+                file_name = get_file_suffix(file_path) 
+                f.write(f"ABINITIO_PREDICTION\t{file_name}\t1\n")
+        if transcript is not None:
+            for file_path in transcript:
+                file_name = get_file_suffix(file_path)
+                f.write(f"TRANSCRIPT\t{file_name}\t4\n")
+        if protein is not None:
+            for file_path in protein:
+                file_name = get_file_suffix(file_path)
+                f.write(f"PROTEIN\t{file_name}\t2\n")
+        if other is not None:
+            for file_path in other:
+                file_name = get_file_suffix(file_path)
+                f.write(f"OTHER_PREDICTION\t{file_name}\t5\n")
 
 
 
